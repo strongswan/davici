@@ -17,12 +17,16 @@ TESTS = \
 	many.tst \
 	event.tst \
 	stream.tst \
-	badsock.tst
+	badsock.tst \
+	cmdunknown.tst \
+	eventunknown.tst
 
 cmd_tst_SOURCES = cmd.c
 many_tst_SOURCES = many.c
 event_tst_SOURCES = event.c
 stream_tst_SOURCES = stream.c
 badsock_tst_SOURCES = badsock.c
+cmdunknown_tst_SOURCES = cmdunknown.c
+eventunknown_tst_SOURCES = eventunknown.c
 
 check_PROGRAMS = $(TESTS)
