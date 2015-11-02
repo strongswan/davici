@@ -14,6 +14,7 @@ LDADD = \
 
 TESTS = \
 	cmd.tst \
+	dump.tst \
 	many.tst \
 	event.tst \
 	stream.tst \
@@ -22,6 +23,7 @@ TESTS = \
 	eventunknown.tst
 
 cmd_tst_SOURCES = cmd.c
+dump_tst_SOURCES = dump.c
 many_tst_SOURCES = many.c
 event_tst_SOURCES = event.c
 stream_tst_SOURCES = stream.c
