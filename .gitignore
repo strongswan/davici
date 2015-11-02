@@ -23,3 +23,6 @@ ltmain.sh
 missing
 stamp-h1
 test-driver
+*.gcda
+*.gcno
+coverage
