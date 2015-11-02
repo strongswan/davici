@@ -49,6 +49,8 @@ struct davici_response {
 	unsigned int buflen;
 	void *buf;
 	char name[257];
+	unsigned int section;
+	unsigned int list;
 };
 
 struct davici_event {
@@ -873,6 +875,10 @@ int davici_parse(struct davici_response *res)
 
 	if (res->pos == res->pkt->received)
 	{
+		if (res->list || res->section)
+		{
+			return -EBADMSG;
+		}
 		res->pos = 0;
 		return DAVICI_END;
 	}
@@ -884,14 +890,34 @@ int davici_parse(struct davici_response *res)
 	switch (type)
 	{
 		case DAVICI_SECTION_START:
-		case DAVICI_LIST_START:
+			if (res->list)
+			{
+				return -EBADMSG;
+			}
+			res->section++;
 			err = parse_name(res);
 			if (err < 0)
 			{
 				return err;
 			}
 			return type;
+		case DAVICI_LIST_START:
+			if (res->list)
+			{
+				return -EBADMSG;
+			}
+			err = parse_name(res);
+			if (err < 0)
+			{
+				return err;
+			}
+			res->list++;
+			return type;
 		case DAVICI_LIST_ITEM:
+			if (!res->list)
+			{
+				return -EBADMSG;
+			}
 			err = parse_value(res);
 			if (err < 0)
 			{
@@ -899,6 +925,10 @@ int davici_parse(struct davici_response *res)
 			}
 			return type;
 		case DAVICI_KEY_VALUE:
+			if (res->list)
+			{
+				return -EBADMSG;
+			}
 			err = parse_name(res);
 			if (err < 0)
 			{
@@ -911,7 +941,18 @@ int davici_parse(struct davici_response *res)
 			}
 			return type;
 		case DAVICI_SECTION_END:
+			if (!res->section || res->list)
+			{
+				return -EBADMSG;
+			}
+			res->section--;
+			return type;
 		case DAVICI_LIST_END:
+			if (!res->list)
+			{
+				return -EBADMSG;
+			}
+			res->list--;
 			return type;
 		default:
 			return -EBADMSG;
