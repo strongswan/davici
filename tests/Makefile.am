@@ -12,6 +12,15 @@ LDADD = \
 	$(top_builddir)/libdavici.la \
 	libtester.la
 
-TESTS =
+TESTS = \
+	cmd.tst \
+	many.tst \
+	event.tst \
+	stream.tst
+
+cmd_tst_SOURCES = cmd.c
+many_tst_SOURCES = many.c
+event_tst_SOURCES = event.c
+stream_tst_SOURCES = stream.c
 
 check_PROGRAMS = $(TESTS)
