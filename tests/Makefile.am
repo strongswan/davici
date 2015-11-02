@@ -16,11 +16,13 @@ TESTS = \
 	cmd.tst \
 	many.tst \
 	event.tst \
-	stream.tst
+	stream.tst \
+	badsock.tst
 
 cmd_tst_SOURCES = cmd.c
 many_tst_SOURCES = many.c
 event_tst_SOURCES = event.c
 stream_tst_SOURCES = stream.c
+badsock_tst_SOURCES = badsock.c
 
 check_PROGRAMS = $(TESTS)
