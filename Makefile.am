@@ -13,7 +13,10 @@ lib_LTLIBRARIES = libdavici.la
 libdavici_la_LDFLAGS = -version-info 0:0:0
 
 libdavici_la_SOURCES = \
-	davici.c davici.h
+	davici.c
+
+nobase_include_HEADERS = \
+	davici.h
 
 AM_CFLAGS = -Wall
 
