@@ -23,7 +23,7 @@ struct davici_request;
 struct davici_response;
 
 /**
- * Parsed message element
+ * Parsed message element.
  */
 enum davici_element {
 	/** valid end of message */
@@ -55,6 +55,18 @@ enum davici_fdops {
 /**
  * Prototype for a command response or event callback function.
  *
+ * This kind of callback is invoked for command response and event callbacks.
+ * The err paramenter indicates any errors in issuing a command or registering
+ * for an event.
+ *
+ * For event registration, also implicitly for streamed command messages using
+ * events, the callback gets invoked with a NULL res parameter to both after
+ * registration and unregistration to indicate any error conditions.
+ *
+ * Command and event registration responses do not carry a name on the wire,
+ * but the name paramenter is populated with the name of the issued event
+ * registration or command request.
+ *
  * @param conn		opaque connection context
  * @param err		0 on success, or a negative receive errno
  * @param name		command or event name raising the callback
@@ -66,6 +78,16 @@ typedef void (*davici_cb)(struct davici_conn *conn, int err, const char *name,
 
 /**
  * Prototype for a file descriptor watch update callback.
+ *
+ * The watch update callback requests (an updated) file descriptor watch
+ * for the user. The fd paramenter is a file descriptor the user shall monitor
+ * with select(), poll() or similar functionality. The ops argument is an ORed
+ * set of enum davici_fdops flags indicating for what kind of file descriptor
+ * events monitoring should be set up.
+ *
+ * The callback may be invoked from any davici function multiple times, but
+ * is guaranteed to get called with a zero ops parameter before returning
+ * from davici_disconnect().
  *
  * @param conn		opaque connection context
  * @param fd		file descriptor to watch
@@ -79,8 +101,13 @@ typedef int (*davici_fdcb)(struct davici_conn *conn, int fd, int ops,
 /**
  * Create a connection to a VICI Unix socket.
  *
+ * Opens a Unix socket connection to a VICI service under path, using a
+ * file descriptor monitoring callback function as discussed above.
+ *
+ * Please note that this function uses connect() on a blocking socket, which
+ * in theory is a blocking call.
+ *
  * @param path		path to Unix socket
- * @param cp		pointer receiving opaque connection handle
  * @param fdcb		callback to register for file descriptor watching
  * @param user		user context to pass to fdcb
  * @param connp		pointer receiving connection context on success
@@ -93,7 +120,10 @@ int davici_connect_unix(const char *path, davici_fdcb fdcb, void *user,
  * Read and process pending connection data.
  *
  * Performs a non-blocking read on the connection, and dispatches any
- * received response or event message.
+ * received response or event message. The call uses non-blocking reads
+ * only, and returns with a successful result if the block would call. It is
+ * usually an unrecoverable error if a negative errno is returned, and the
+ * user should call davici_disconnect().
  *
  * @param conn		opaque connection context
  * @return			0 on success, or a negative errno
@@ -104,7 +134,10 @@ int davici_read(struct davici_conn *conn);
  * Write queued request data to the connection.
  *
  * Performs a non-blocking write on the connection for any currently queued
- * message.
+ * message. The call uses non-blocking reads only, and returns with a
+ * successful result if the block would call. It is usually an unrecoverable
+ * error if a negative errno is returned, and the user should call
+ * davici_disconnect().
  *
  * @param conn		opaque connection context
  * @return			0 on success, or a negative errno
@@ -114,12 +147,26 @@ int davici_write(struct davici_conn *conn);
 /**
  * Close an open VICI connection and free associated resources.
  *
+ * Frees any resources associated to a connection, and invokes the file
+ * descriptor watch callback of the connection with zero-flags if a monitoring
+ * registration is active.
+ *
+ * Any request messages created with davici_new_cmd() but not queued to
+ * the connection using either davici_queue() or davici_queue_streamed()
+ * is not freed by this call. Such requests must be freed explicitly by calling
+ * davici_cancel() on them.
+ *
  * @param conn		opaque connection context
  */
 void davici_disconnect(struct davici_conn *conn);
 
 /**
  * Allocate a new request command message.
+ *
+ * Creates a new but empty request message for a named command. The returned
+ * handle must be passed to davici_queue() or davici_queue_streamed() after
+ * adding request data. If the connection gets closed before the request
+ * could be queued, the request must be freed using davici_cancel().
  *
  * @param cmd		command name
  * @param reqp		receives allocated request context
@@ -130,6 +177,10 @@ int davici_new_cmd(const char *cmd, struct davici_request **reqp);
 /**
  * Begin a new section on a request message.
  *
+ * Begin a new named section at the current request position. Any started
+ * section must have a corresponding davici_section_end() added to form
+ * a valid request message. Creating sections within lists is invalid.
+ *
  * @param req		request context
  * @param name		name of section to open
  */
@@ -138,12 +189,20 @@ void davici_section_start(struct davici_request *req, const char *name);
 /**
  * End a section previously opened on a request message.
  *
+ * Close a section previously started with davici_section_start(). The
+ * call must be balanced with davici_section_start() to form a valid request
+ * message.
+ *
  * @param req		request context
  */
 void davici_section_end(struct davici_request *req);
 
 /**
  * Add a key/value element to the request message.
+ *
+ * Adds a new key/value pair at the current request position. Key/values
+ * may be added to any explicit or the implicit root section, but not to
+ * lists.
  *
  * @param req		request context
  * @param name		key name
@@ -156,6 +215,9 @@ void davici_kv(struct davici_request *req, const char *name,
 /**
  * Add a key with a format string value to the request message.
  *
+ * Similar to davici_kv(), but instead of a fixed buffer takes a printf()
+ * format string and arguments to form the value of the key/value pair.
+ *
  * @param req		request context
  * @param name		key name
  * @param fmt		format string for value
@@ -166,6 +228,9 @@ void davici_kvf(struct davici_request *req, const char *name,
 
 /**
  * Add a key with a format string value and a va_list to the request message.
+ *
+ * Very similar to davici_kvf(), but takes a va_list argument list for the
+ * format string instead of variable arguments.
  *
  * @param req		request context
  * @param name		key name
@@ -178,13 +243,20 @@ void davici_vkvf(struct davici_request *req, const char *name,
 /**
  * Begin a list of unnamed items in a request message.
  *
- * @param req			request context
+ * Starts a new list at the current request message position. Lists may appear
+ * in any section, but not in lists. Started lists must be closed by
+ * davici_list_end(), and both calls must be balanced to form a valid request
+ * message.
+ *
+ * @param req		request context
  * @param name		list name to open
  */
 void davici_list_start(struct davici_request *req, const char *name);
 
 /**
  * Add a list item value to a previously opened list.
+ *
+ * List items may be added to lists only, and are invalid in any other context.
  *
  * @param req		request context
  * @param buf		value buffer
@@ -196,6 +268,9 @@ void davici_list_item(struct davici_request *req, const void *buf,
 /**
  * Add a list item with a format string value to a previously opened list.
  *
+ * Similar to davici_list_item(), but instead of a fixed buffer takes a
+ * printf() format string and variable arguments to form the list item value.
+ *
  * @param req		request context
  * @param fmt		format string for value
  * @param ...		arguments for fmt string
@@ -204,6 +279,9 @@ void davici_list_itemf(struct davici_request *req, const char *fmt, ...);
 
 /**
  * Add a list item with a format string value and a va_list.
+ *
+ * Very similar to davici_list_itemf(), but instead of variable arguments
+ * takes a va_list for the printf() format string.
  *
  * @param req		request context
  * @param fmt		format string for value
@@ -214,6 +292,8 @@ void davici_list_vitemf(struct davici_request *req, const char *fmt,
 
 /**
  * End a list previously opened for a request message.
+ *
+ * Closes the currently open list; valid only in a list context.
  *
  * @param req		request context
  */
@@ -251,7 +331,7 @@ int davici_queue(struct davici_conn *conn, struct davici_request *req,
 /**
  * Queue a command request using event based streaming.
  *
- * In addition to davici_queue(), this call register for an event while
+ * In addition to davici_queue(), this call registers for an event while
  * the command is active and invokes an event callback for each streamed
  * object. Upon completion of the call, it invokes the result callback.
  *
@@ -302,6 +382,16 @@ int davici_unregister(struct davici_conn *conn, const char *event,
 /**
  * Parse a response or event message.
  *
+ * davici_parse() implements iterative parsing of response messages by
+ * returning enum davici_element types as parsing status. For named types
+ * davici_get_name() may be called to get the name of just parsed element.
+ * For types having a value, davici_get_value() returns the value of the
+ * just parsed element.
+ *
+ * If parsing completes with DAVICI_END it may be parsed again using
+ * davici_parse(). When davici_parse() returns an error, additional calls
+ * to davici_parse() have undefined behavior.
+ *
  * @param res		response or event message
  * @return			enum davici_element, or a negative errno
  */
@@ -313,7 +403,7 @@ int davici_parse(struct davici_response *res);
  * This call has defined behavior only if davici_parse() returned an element,
  * with a name, i.e. a section/list start or a key/value.
  *
- * @param rres		response or event message
+ * @param res		response or event message
  * @return			element name
  */
 const char* davici_get_name(struct davici_response *res);
@@ -335,7 +425,7 @@ const void* davici_get_value(struct davici_response *res, unsigned int *len);
  *
  * This is a convenience function to get the value of an element as string,
  * the same restirctions as to davici_get_value() apply. The function fails
- * the value has any non-printable characters.
+ * if the value has any non-printable characters.
  *
  * @param res		response or event message context
  * @param buf		buffer to write string to
@@ -347,6 +437,9 @@ int davici_get_value_str(struct davici_response *res,
 
 /**
  * Dump a response or event message to a FILE stream.
+ *
+ * The dump output is not considered stable, but solely for debugging
+ * purposes.
  *
  * @param res		response or event message context
  * @param name		name of the message to dump
