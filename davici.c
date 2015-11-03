@@ -788,6 +788,12 @@ int davici_queue_streamed(struct davici_conn *c, struct davici_request *r,
 {
 	int err;
 
+	if (r->err)
+	{
+		err = r->err;
+		davici_cancel(r);
+		return err;
+	}
 	err = davici_register(c, event, event_cb, user);
 	if (err)
 	{
