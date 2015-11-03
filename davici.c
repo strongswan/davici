@@ -385,7 +385,7 @@ int davici_read(struct davici_conn *c)
 				   sizeof(c->pkt.len) - c->pkt.received, MSG_DONTWAIT);
 		if (len == -1)
 		{
-			if (errno == EWOULDBLOCK)
+			if (errno == EWOULDBLOCK || errno == EINTR)
 			{
 				return 0;
 			}
@@ -409,7 +409,7 @@ int davici_read(struct davici_conn *c)
 				   size - (c->pkt.received - sizeof(c->pkt.len)), MSG_DONTWAIT);
 		if (len == -1)
 		{
-			if (errno == EWOULDBLOCK)
+			if (errno == EWOULDBLOCK || errno == EINTR)
 			{
 				return 0;
 			}
@@ -447,7 +447,7 @@ int davici_write(struct davici_conn *c)
 					   sizeof(size) - req->sent, MSG_DONTWAIT);
 			if (len == -1)
 			{
-				if (errno == EWOULDBLOCK)
+				if (errno == EWOULDBLOCK || errno == EINTR)
 				{
 					return 0;
 				}
@@ -461,7 +461,7 @@ int davici_write(struct davici_conn *c)
 					   req->used - (req->sent - sizeof(size)), MSG_DONTWAIT);
 			if (len == -1)
 			{
-				if (errno == EWOULDBLOCK)
+				if (errno == EWOULDBLOCK || errno == EINTR)
 				{
 					return 0;
 				}
