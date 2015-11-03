@@ -391,6 +391,10 @@ int davici_read(struct davici_conn *c)
 			}
 			return -errno;
 		}
+		if (len == 0)
+		{
+			return -ECONNRESET;
+		}
 		c->pkt.received += len;
 	}
 	memcpy(&size, c->pkt.len, sizeof(size));
@@ -414,6 +418,10 @@ int davici_read(struct davici_conn *c)
 				return 0;
 			}
 			return -errno;
+		}
+		if (len == 0)
+		{
+			return -ECONNRESET;
 		}
 		c->pkt.received += len;
 	}
