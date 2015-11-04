@@ -348,6 +348,14 @@ int davici_queue_streamed(struct davici_conn *conn, struct davici_request *req,
 						  davici_cb event_cb, void *user);
 
 /**
+ * Get the count of all queued davici request messages.
+ *
+ * @param conn		connection context
+ * @return			number of request messages in queue
+ */
+unsigned int davici_queue_len(struct davici_conn *conn);
+
+/**
  * Register for event messages.
  *
  * Event registration is asynchronous; once registration completed the

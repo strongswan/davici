@@ -58,6 +58,7 @@ int main(int argc, char *argv[])
 	assert(davici_connect_unix(tester_getpath(t),
 							   tester_davici_iocb, t, &c) >= 0);
 
+	assert(davici_queue_len(c) == 0);
 	for (i = 0; i < request_count; i++)
 	{
 		assert(davici_new_cmd("echoreq", &r) >= 0);
@@ -77,10 +78,12 @@ int main(int argc, char *argv[])
 			davici_section_end(r);
 		}
 		assert(davici_queue(c, r, reqcb, t) >= 0);
+		assert(davici_queue_len(c) == i + 1);
 	}
 
 	tester_runio(t, c);
 	assert(seen == request_count);
+	assert(davici_queue_len(c) == 0);
 	davici_disconnect(c);
 	tester_cleanup(t);
 	return 0;

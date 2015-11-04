@@ -804,6 +804,20 @@ int davici_queue_streamed(struct davici_conn *c, struct davici_request *r,
 	return err;
 }
 
+unsigned int davici_queue_len(struct davici_conn *c)
+{
+	struct davici_request *req;
+	unsigned int count = 0;
+
+	req = c->reqs;
+	while (req)
+	{
+		req = req->next;
+		count++;
+	}
+	return count;
+}
+
 int davici_register(struct davici_conn *c, const char *event,
 					davici_cb cb, void *user)
 {
