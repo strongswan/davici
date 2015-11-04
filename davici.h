@@ -409,6 +409,18 @@ int davici_parse(struct davici_response *res);
 const char* davici_get_name(struct davici_response *res);
 
 /**
+ * Compare the previously parsed element name against a given string.
+ *
+ * This call has defined behavior only if davici_parse() returned an element,
+ * with a name, i.e. a section/list start or a key/value.
+ *
+ * @param res		response or event message
+ * @param str		string to compare against name
+ * @return			strcmp() result
+ */
+int davici_name_strcmp(struct davici_response *res, const char *str);
+
+/**
  * Get the element value previously parsed in davici_parse().
  *
  * This call has defined behavior only if davici_parse() returned an element,
@@ -434,6 +446,18 @@ const void* davici_get_value(struct davici_response *res, unsigned int *len);
  */
 int davici_get_value_str(struct davici_response *res,
 						 char *buf, unsigned int buflen);
+
+/**
+ * Compare the element value to a given string.
+ *
+ * This is a convenience function to compare the value of an element as string
+ * to a given string. The same restirctions as to davici_get_value() apply.
+ *
+ * @param res		response or event message
+ * @param str		string to compare against value
+ * @return			strcmp() result
+ */
+int davici_value_strcmp(struct davici_response *res, const char *str);
 
 /**
  * Dump a response or event message to a FILE stream.

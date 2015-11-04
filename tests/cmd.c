@@ -51,12 +51,19 @@ static void reqcb(struct davici_conn *c, int err, const char *name,
 			case 2:
 				assert(ret == DAVICI_LIST_START);
 				assert(strcmp(davici_get_name(res), "list") == 0);
+				assert(davici_name_strcmp(res, "list") == 0);
+				assert(davici_name_strcmp(res, "a") > 0);
+				assert(davici_name_strcmp(res, "x") < 0);
 				break;
 			case 3:
 				assert(ret == DAVICI_LIST_ITEM);
 				assert(davici_get_value_str(res, buf,
 											sizeof(buf)) == strlen("item"));
 				assert(strcmp(buf, "item") == 0);
+				assert(davici_value_strcmp(res, "item") == 0);
+				assert(davici_value_strcmp(res, "a") > 0);
+				assert(davici_value_strcmp(res, "x") < 0);
+				assert(davici_value_strcmp(res, "itemxx") < 0);
 				break;
 			case 4:
 				assert(ret == DAVICI_LIST_END);

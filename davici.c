@@ -980,6 +980,11 @@ const char* davici_get_name(struct davici_response *res)
 	return res->name;
 }
 
+int davici_name_strcmp(struct davici_response *res, const char *str)
+{
+	return strcmp(res->name, str);
+}
+
 const void* davici_get_value(struct davici_response *res, unsigned int *len)
 {
 	*len = res->buflen;
@@ -1009,6 +1014,22 @@ int davici_get_value_str(struct davici_response *res,
 		return -ENOBUFS;
 	}
 	return len;
+}
+
+int davici_value_strcmp(struct davici_response *res, const char *str)
+{
+	int ret;
+
+	ret = strncmp(res->buf, str, res->buflen);
+	if (ret)
+	{
+		return ret;
+	}
+	if (strlen(str) == res->buflen)
+	{
+		return 0;
+	}
+	return -1;
 }
 
 int davici_dump(struct davici_response *res, const char *name, const char *sep,
