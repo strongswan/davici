@@ -491,22 +491,25 @@ void davici_disconnect(struct davici_conn *c)
 {
 	struct davici_event *event;
 	struct davici_request *req;
+	void *next;
 
 	update_ops(c, 0);
 
 	event = c->events;
 	while (event)
 	{
-		event = event->next;
+		next = event->next;
 		free(event->name);
 		free(event);
+		event = next;
 	}
 	req = c->reqs;
 	while (req)
 	{
-		req = req->next;
+		next = req->next;
 		free(req->buf);
 		free(req);
+		req = next;
 	}
 	close(c->s);
 	free(c);

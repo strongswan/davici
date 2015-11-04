@@ -92,7 +92,16 @@ int main(int argc, char *argv[])
 							   tester_davici_iocb, t, &c) >= 0);
 	assert(davici_new_cmd("tocancel", &r) >= 0);
 	davici_cancel(r);
+	assert(davici_new_cmd("one", &r) >= 0);
+	assert(davici_queue(c, r, reqcb, t) >= 0);
+	assert(davici_new_cmd("two", &r) >= 0);
+	assert(davici_queue(c, r, reqcb, t) >= 0);
+	assert(davici_new_cmd("three", &r) >= 0);
+	assert(davici_queue(c, r, reqcb, t) >= 0);
+	davici_disconnect(c);
 
+	assert(davici_connect_unix(tester_getpath(t),
+							   tester_davici_iocb, t, &c) >= 0);
 	assert(davici_new_cmd("echoreq", &r) >= 0);
 	davici_section_start(r, "section");
 	davici_kvf(r, "key", "%s", "value");
