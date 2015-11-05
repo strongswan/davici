@@ -992,6 +992,15 @@ int davici_parse(struct davici_response *res)
 	}
 }
 
+unsigned int davici_get_level(struct davici_response *res)
+{
+	if (res->list)
+	{
+		return res->section + 1;
+	}
+	return res->section;
+}
+
 const char* davici_get_name(struct davici_response *res)
 {
 	return res->name;

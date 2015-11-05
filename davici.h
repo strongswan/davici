@@ -406,6 +406,20 @@ int davici_unregister(struct davici_conn *conn, const char *event,
 int davici_parse(struct davici_response *res);
 
 /**
+ * Get the section/list nesting level of the current parser position.
+ *
+ * The root section has a level of 0, and each section has a per one higher
+ * level. If parsing a list, the level is increased by one. The level after
+ * parsing a section/list start is increased just after davici_parse() such
+ * an element, while end elements decrease the level in davici_parse() for
+ * the end element.
+ *
+ * @param res		response or event message
+ * @return			section/list nesting level
+ */
+unsigned int davici_get_level(struct davici_response *res);
+
+/**
  * Get the element name previously parsed in davici_parse().
  *
  * This call has defined behavior only if davici_parse() returned an element,

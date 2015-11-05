@@ -30,6 +30,7 @@ static void reqcb(struct davici_conn *c, int err, const char *name,
 	int ret, i;
 
 	assert(err >= 0);
+	assert(davici_get_level(res) == 0);
 
 	for (i = 0;; i++)
 	{
@@ -39,6 +40,7 @@ static void reqcb(struct davici_conn *c, int err, const char *name,
 			case 0:
 				assert(ret == DAVICI_SECTION_START);
 				assert(strcmp(davici_get_name(res), "section") == 0);
+				assert(davici_get_level(res) == 1);
 				break;
 			case 1:
 				assert(ret == DAVICI_KEY_VALUE);
@@ -47,6 +49,7 @@ static void reqcb(struct davici_conn *c, int err, const char *name,
 				assert(v);
 				assert(len == strlen("value"));
 				assert(memcmp(v, "value", len) == 0);
+				assert(davici_get_level(res) == 1);
 				break;
 			case 2:
 				assert(ret == DAVICI_LIST_START);
@@ -54,6 +57,7 @@ static void reqcb(struct davici_conn *c, int err, const char *name,
 				assert(davici_name_strcmp(res, "list") == 0);
 				assert(davici_name_strcmp(res, "a") > 0);
 				assert(davici_name_strcmp(res, "x") < 0);
+				assert(davici_get_level(res) == 2);
 				break;
 			case 3:
 				assert(ret == DAVICI_LIST_ITEM);
@@ -64,15 +68,19 @@ static void reqcb(struct davici_conn *c, int err, const char *name,
 				assert(davici_value_strcmp(res, "a") > 0);
 				assert(davici_value_strcmp(res, "x") < 0);
 				assert(davici_value_strcmp(res, "itemxx") < 0);
+				assert(davici_get_level(res) == 2);
 				break;
 			case 4:
 				assert(ret == DAVICI_LIST_END);
+				assert(davici_get_level(res) == 1);
 				break;
 			case 5:
 				assert(ret == DAVICI_SECTION_END);
+				assert(davici_get_level(res) == 0);
 				break;
 			case 6:
 				assert(ret == DAVICI_END);
+				assert(davici_get_level(res) == 0);
 				return tester_complete(t);
 			default:
 				assert(0);
