@@ -9,9 +9,11 @@
 #include <string.h>
 #include <stdint.h>
 
+static char huge[4096];
+
 static void echocb(struct tester *t, int fd)
 {
-	char buf[2048];
+	char buf[sizeof(huge) * 2];
 	uint32_t len;
 
 	len = tester_read_cmdreq(fd, "echoreq");
@@ -25,9 +27,10 @@ static void reqcb(struct davici_conn *c, int err, const char *name,
 {
 	struct tester *t = user;
 	char buf[64];
+	const char *h;
 	unsigned int len;
 	const void *v;
-	int ret, i;
+	int ret, i, j;
 
 	assert(err >= 0);
 	assert(davici_get_level(res) == 0);
@@ -75,10 +78,21 @@ static void reqcb(struct davici_conn *c, int err, const char *name,
 				assert(davici_get_level(res) == 1);
 				break;
 			case 5:
+				assert(ret == DAVICI_KEY_VALUE);
+				assert(davici_get_level(res) == 1);
+				assert(davici_name_strcmp(res, "huge") == 0);
+				h = davici_get_value(res, &len);
+				assert(len == sizeof(huge));
+				for (j = 0; j < len; j++)
+				{
+					assert(h[i] == 'h');
+				}
+				break;
+			case 6:
 				assert(ret == DAVICI_SECTION_END);
 				assert(davici_get_level(res) == 0);
 				break;
-			case 6:
+			case 7:
 				assert(ret == DAVICI_END);
 				assert(davici_get_level(res) == 0);
 				return tester_complete(t);
@@ -116,6 +130,8 @@ int main(int argc, char *argv[])
 	davici_list_start(r, "list");
 	davici_list_itemf(r, "%s", "item");
 	davici_list_end(r);
+	memset(huge, 'h', sizeof(huge));
+	davici_kv(r, "huge", huge, sizeof(huge));
 	davici_section_end(r);
 
 	assert(davici_queue(c, r, reqcb, t) >= 0);

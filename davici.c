@@ -562,7 +562,11 @@ static void* add_element(struct davici_request *r, enum davici_element type,
 
 	if (r->used + size + 1 > r->allocated)
 	{
-		newlen = max(r->allocated * 2, 32);
+		newlen = max(r->allocated, 32);
+		while (newlen < r->used + size + 1)
+		{
+			newlen *= 2;
+		}
 		new = realloc(r->buf, newlen);
 		if (!new)
 		{
