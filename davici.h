@@ -6,6 +6,7 @@
 #define _DAVICI_H_
 
 #include <stdio.h>
+#include <stdarg.h>
 
 /**
  * Opaque connection context.
