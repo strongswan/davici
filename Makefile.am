@@ -22,6 +22,7 @@ AM_CFLAGS = -Wall
 
 clean-local: cov-reset
 	@find $(top_builddir) -name "*.gcno" -delete
+	rm -rf $(top_builddir)/api
 
 cov-reset:
 	@rm -rf $(top_builddir)/coverage
@@ -43,3 +44,21 @@ cov-makereport: cov-reset check
 
 cov-report: cov-makereport
 	xdg-open $(top_builddir)/coverage/html/index.html
+
+doxygen: Doxyfile
+	@test -d $(top_builddir)/api || doxygen
+	@! find Doxyfile $(top_srcdir) \
+		\( -name '*.h' -o -name '*.md' \) -newer $(top_builddir)/api | \
+		grep -q '' || doxygen && touch $(top_builddir)/api
+
+Doxyfile:	Doxyfile.in
+	$(AM_V_GEN) \
+	sed \
+	-e "s:\@PACKAGE_VERSION\@:$(PACKAGE_VERSION):" \
+	-e "s:\@PACKAGE_NAME\@:$(PACKAGE_NAME):" \
+	-e "s:\@SRC_DIR\@:$(srcdir)/README.md $(srcdir)/davici.h:g" \
+	$(srcdir)/$@.in > $@
+
+CLEANFILES = Doxyfile
+
+EXTRA_DIST = Doxyfile.in

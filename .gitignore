@@ -26,3 +26,5 @@ test-driver
 *.gcda
 *.gcno
 coverage
+Doxyfile
+api/

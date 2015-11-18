@@ -2,6 +2,13 @@
  * Copyright (c) 2015 CloudGuard Software AG. All rights reserved.
  */
 
+/**
+ * @defgroup davici davici
+ * @{
+ *
+ * Decoupled Asynchronous strongSwan VICI client library.
+ */
+
 #ifndef _DAVICI_H_
 #define _DAVICI_H_
 
@@ -500,3 +507,7 @@ int davici_dump(struct davici_response *res, const char *name, const char *sep,
 				unsigned int level, unsigned int ident, FILE *out);
 
 #endif /* _DAVICI_H_ */
+
+/**
+ * @}
+ */
