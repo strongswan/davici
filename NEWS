@@ -1,5 +1,10 @@
 # Release notes #
 
+## Version 1.0 - 2015-12-15 ##
+
+- Initial public LGPLv2 licensed release
+
+
 ## Version 0.1 - 2015-11-06 ##
 
 - First release of davici asynchronous VICI client library
