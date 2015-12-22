@@ -550,7 +550,7 @@ static int create_request(enum davici_packet_type type, const char *name,
 	if (!req->buf)
 	{
 		err = -errno;
-		free(req->buf);
+		free(req);
 		return err;
 	}
 	req->buf[0] = type;
