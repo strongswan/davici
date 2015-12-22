@@ -127,11 +127,6 @@ static unsigned int min(unsigned int a, unsigned int b)
 	return a < b ? a : b;
 }
 
-static unsigned int max(unsigned int a, unsigned int b)
-{
-	return a > b ? a : b;
-}
-
 static int update_ops(struct davici_conn *c, enum davici_fdops ops)
 {
 	int ret;
@@ -576,7 +571,7 @@ static void* add_element(struct davici_request *r, enum davici_element type,
 
 	if (r->used + size + 1 > r->allocated)
 	{
-		newlen = max(r->allocated, 32);
+		newlen = r->allocated;
 		while (newlen < r->used + size + 1)
 		{
 			newlen *= 2;
