@@ -24,6 +24,10 @@
 #include <arpa/inet.h>
 #include <sys/socket.h>
 #include <sys/un.h>
+#include <limits.h>
+
+/* buffer size for a name tag */
+#define NAME_BUF_LEN (UCHAR_MAX + 1)
 
 enum davici_packet_type {
 	DAVICI_CMD_REQUEST = 0,
@@ -58,7 +62,7 @@ struct davici_response {
 	unsigned int pos;
 	unsigned int buflen;
 	void *buf;
-	char name[257];
+	char name[NAME_BUF_LEN];
 	unsigned int section;
 	unsigned int list;
 };
@@ -197,7 +201,7 @@ static int handle_cmd_response(struct davici_conn *c, struct davici_packet *pkt)
 	struct davici_response res = {
 		.pkt = pkt,
 	};
-	char name[257];
+	char name[NAME_BUF_LEN];
 
 	req = pop_request(c, DAVICI_CMD_REQUEST, name, sizeof(name));
 	if (!req)
@@ -213,7 +217,7 @@ static int handle_cmd_response(struct davici_conn *c, struct davici_packet *pkt)
 static int handle_cmd_unknown(struct davici_conn *c)
 {
 	struct davici_request *req;
-	char name[257];
+	char name[NAME_BUF_LEN];
 
 	req = pop_request(c, DAVICI_CMD_REQUEST, name, sizeof(name));
 	if (!req)
@@ -229,7 +233,7 @@ static int handle_cmd_unknown(struct davici_conn *c)
 static int handle_event_unknown(struct davici_conn *c)
 {
 	struct davici_request *req;
-	char name[257];
+	char name[NAME_BUF_LEN];
 
 	req = pop_request(c, DAVICI_EVENT_REGISTER, name, sizeof(name));
 	if (!req)
@@ -301,7 +305,7 @@ static int add_event(struct davici_conn *c, const char *name,
 static int handle_event_confirm(struct davici_conn *c)
 {
 	struct davici_request *req;
-	char name[257];
+	char name[NAME_BUF_LEN];
 	int err;
 
 	req = pop_request(c, DAVICI_EVENT_REGISTER, name, sizeof(name));
@@ -336,7 +340,7 @@ static int handle_event(struct davici_conn *c, struct davici_packet *pkt)
 		.pkt = &inner,
 	};
 	struct davici_event *ev;
-	char name[257];
+	char name[NAME_BUF_LEN];
 	int err;
 
 	if (!pkt->received || pkt->buf[0] >= c->pkt.received - 1)
