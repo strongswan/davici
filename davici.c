@@ -1073,13 +1073,13 @@ int davici_value_strcmp(struct davici_response *res, const char *str)
 }
 
 int davici_dump(struct davici_response *res, const char *name, const char *sep,
-				unsigned int level, unsigned int ident, FILE *out)
+				unsigned int level, unsigned int indent, FILE *out)
 {
 	ssize_t len, total = 0;
 	char buf[4096];
 	int err;
 
-	len = fprintf(out, "%*s%s {%s", level * ident, "", name, sep);
+	len = fprintf(out, "%*s%s {%s", level * indent, "", name, sep);
 	if (len < 0)
 	{
 		return -errno;
@@ -1093,20 +1093,20 @@ int davici_dump(struct davici_response *res, const char *name, const char *sep,
 		{
 			case DAVICI_END:
 				level--;
-				len = fprintf(out, "%*s}", level * ident, "");
+				len = fprintf(out, "%*s}", level * indent, "");
 				if (len < 0)
 				{
 					return -errno;
 				}
 				return total + len;
 			case DAVICI_SECTION_START:
-				len = fprintf(out, "%*s%s {%s", level * ident, "",
+				len = fprintf(out, "%*s%s {%s", level * indent, "",
 							  res->name, sep);
 				level++;
 				break;
 			case DAVICI_SECTION_END:
 				level--;
-				len = fprintf(out, "%*s}%s", level * ident, "", sep);
+				len = fprintf(out, "%*s}%s", level * indent, "", sep);
 				break;
 			case DAVICI_KEY_VALUE:
 				err = davici_get_value_str(res, buf, sizeof(buf));
@@ -1114,11 +1114,11 @@ int davici_dump(struct davici_response *res, const char *name, const char *sep,
 				{
 					return err;
 				}
-				len = fprintf(out, "%*s%s = %s%s", level * ident, "",
+				len = fprintf(out, "%*s%s = %s%s", level * indent, "",
 							  res->name, buf, sep);
 				break;
 			case DAVICI_LIST_START:
-				len = fprintf(out, "%*s%s [%s", level * ident, "",
+				len = fprintf(out, "%*s%s [%s", level * indent, "",
 							  res->name, sep);
 				level++;
 				break;
@@ -1128,11 +1128,11 @@ int davici_dump(struct davici_response *res, const char *name, const char *sep,
 				{
 					return err;
 				}
-				len = fprintf(out, "%*s%s%s", level * ident, "", buf, sep);
+				len = fprintf(out, "%*s%s%s", level * indent, "", buf, sep);
 				break;
 			case DAVICI_LIST_END:
 				level--;
-				len = fprintf(out, "%*s]%s", level * ident, "", sep);
+				len = fprintf(out, "%*s]%s", level * indent, "", sep);
 				break;
 			default:
 				return err;

@@ -508,13 +508,13 @@ int davici_value_strcmp(struct davici_response *res, const char *str);
  * @param res		response or event message context
  * @param name		name of the message to dump
  * @param sep		value separator, such as "\n"
- * @param level		base identation level
- * @param ident		number of spaces to use for identation
+ * @param level		base indentation level
+ * @param indent	number of spaces to use for indentation
  * @param out		FILE stream to write to
  * @return			total bytes written, or a negative errno on error
  */
 int davici_dump(struct davici_response *res, const char *name, const char *sep,
-				unsigned int level, unsigned int ident, FILE *out);
+				unsigned int level, unsigned int indent, FILE *out);
 
 #endif /* _DAVICI_H_ */
 
