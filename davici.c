@@ -554,7 +554,7 @@ static int create_request(enum davici_packet_type type, const char *name,
 		return err;
 	}
 	req->buf[0] = type;
-	req->buf[1] = strlen(name);
+	req->buf[1] = req->used - 2;
 	if (name)
 	{
 		memcpy(req->buf + 2, name, req->used - 2);
