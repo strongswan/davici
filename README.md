@@ -1,6 +1,6 @@
 # davici - Decoupled Asynchronous VICI library #
 
-The strongSwan VICI interface is a RPC-like interface to configure, monitor and
+The strongSwan VICI interface is an RPC-like interface to configure, monitor and
 control the IKE daemon charon. It is implemented in the vici plugin and used
 by the swanctl configuration backend. VICI stands for Versatile IKE
 Configuration Interface, details about the protocol are provided in the
@@ -15,8 +15,8 @@ threads for asynchronous event delivery.
 
 davici is an alternative implementation of the VICI client protocol, targeting
 better integration in other software stacks. It uses an asynchronous,
-non-blocking API and can be integrated in third party main dispatching loops
-without the use of threads. davici is a very level library intended as a
+non-blocking API and can be integrated in third-party main dispatching loops
+without the use of threads. davici is a very low-level library intended as a
 foundation to build higher level control interfaces for strongSwan.
 
 ## I/O dispatching and main loop integration ##
@@ -27,7 +27,7 @@ Higher level main loop processing APIs can use davici as well, as long as they
 provide a mechanism to watch for file descriptor state changes.
 
 When creating a VICI connection with davici, the constructor takes a
-davici_fdcb callback function. Any davici function may invoke the passed
+``davici_fdcb`` callback function. Any davici function may invoke the passed
 callback function to perform I/O dispatching registration. The callback
 receives a file descriptor, and a request for a set of file descriptor
 operations to monitor. That information must be used to add or update file
@@ -48,37 +48,38 @@ synchronized to a single concurrent thread.
 
 ## Invoking commands ##
 
-Commands are client-initated exchanges including a request message sent by
+Commands are client-initiated exchanges including a request message sent by
 the client and a response message sent by the server. The ``davici_new_cmd()``
 function creates a new and empty request message for a specific command, which
 then may be populated using the different functions provided by davici.
 
-Once the request is complete (and balanced), it may be queued for execution
-using ``davici_queue()``. The provided user callback is invoked asynchronously
-once the server response is received or the exchange failed. If a valid
-response has been received, a non-negative error value is passed to the
-callback together with a response message. An arbitrary number of requests
-may be queued, but they do get executed synchronized one by one on a single
-connection.
+Once the request is complete (and balanced in regards to sections/lists), it may
+be queued for execution using ``davici_queue()``. The provided user callback is
+invoked asynchronously once the server response is received or the exchange
+failed. If a valid response has been received, a non-negative error value is
+passed to the callback together with the response message. An arbitrary number
+of requests may be queued, but they do get executed synchronized one by one on
+a single connection.
 
 Within the response callback the user may parse the response message using
-``davici_parse()`` and associated functions. The function implements an iterative
-parser to process any kind of response message.
+``davici_parse()`` and associated functions. The function implements an
+iterative parser to process any kind of response message.
 
 ## Streaming command response ##
 
 Some commands in the VICI protocol use response streaming, that is, upon
-receiving a request start streaming individual event messages. The end of
-the event stream is indicated by the response message matching the request.
+receiving a request the vici plugin starts sending related event messages.
+The end of the event stream is indicated by the response message matching
+the request.
 
 The ``davici_queue_streamed()`` function queues a request for streamed response
 processing. It takes an additional event callback that is invoked for each
 streamed response. The event callback is also invoked for the implicit event
 registration with a NULL response to indicate any registration error.
 
-In both the event callback and the command response callback the user may
-use ``davici_parse()`` to process messages. One may even use the same function
-for callback for both callbacks, but care must be taken to properly handle the
+As with the command response callback the user may use ``davici_parse()`` to
+process messages in the event callback. One may even use the same callback
+function for both usages, but care must be taken to properly handle the
 registration/deregistration invocations properly.
 
 ## Event handling ##
