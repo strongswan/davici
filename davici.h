@@ -74,15 +74,15 @@ enum davici_fdops {
  * Prototype for a command response or event callback function.
  *
  * This kind of callback is invoked for command response and event callbacks.
- * The err paramenter indicates any errors in issuing a command or registering
+ * The err parameter indicates any errors in issuing a command or registering
  * for an event.
  *
  * For event registration, also implicitly for streamed command messages using
- * events, the callback gets invoked with a NULL res parameter to both after
- * registration and unregistration to indicate any error conditions.
+ * events, the callback gets invoked with a NULL res parameter both after
+ * registration and deregistration to indicate any error conditions.
  *
  * Command and event registration responses do not carry a name on the wire,
- * but the name paramenter is populated with the name of the issued event
+ * but the name parameter is populated with the name of the issued event
  * registration or command request.
  *
  * @param conn		opaque connection context
@@ -97,8 +97,8 @@ typedef void (*davici_cb)(struct davici_conn *conn, int err, const char *name,
 /**
  * Prototype for a file descriptor watch update callback.
  *
- * The watch update callback requests (an updated) file descriptor watch
- * for the user. The fd paramenter is a file descriptor the user shall monitor
+ * The watch update callback requests (or updates) a file descriptor watch from
+ * the user. The fd parameter is a file descriptor the user shall monitor
  * with select(), poll() or similar functionality. The ops argument is an ORed
  * set of enum davici_fdops flags indicating for what kind of file descriptor
  * events monitoring should be set up.
@@ -139,7 +139,7 @@ int davici_connect_unix(const char *path, davici_fdcb fdcb, void *user,
  *
  * Performs a non-blocking read on the connection, and dispatches any
  * received response or event message. The call uses non-blocking reads
- * only, and returns with a successful result if the block would call. It is
+ * only, and returns with a successful result if the call would block. It is
  * usually an unrecoverable error if a negative errno is returned, and the
  * user should call davici_disconnect().
  *
@@ -153,7 +153,7 @@ int davici_read(struct davici_conn *conn);
  *
  * Performs a non-blocking write on the connection for any currently queued
  * message. The call uses non-blocking reads only, and returns with a
- * successful result if the block would call. It is usually an unrecoverable
+ * successful result if the call would block. It is usually an unrecoverable
  * error if a negative errno is returned, and the user should call
  * davici_disconnect().
  *
@@ -410,7 +410,7 @@ int davici_unregister(struct davici_conn *conn, const char *event,
  *
  * davici_parse() implements iterative parsing of response messages by
  * returning enum davici_element types as parsing status. For named types
- * davici_get_name() may be called to get the name of just parsed element.
+ * davici_get_name() may be called to get the name of the just parsed element.
  * For types having a value, davici_get_value() returns the value of the
  * just parsed element.
  *
@@ -426,11 +426,11 @@ int davici_parse(struct davici_response *res);
 /**
  * Get the section/list nesting level of the current parser position.
  *
- * The root section has a level of 0, and each section has a per one higher
- * level. If parsing a list, the level is increased by one. The level after
- * parsing a section/list start is increased just after davici_parse() such
- * an element, while end elements decrease the level in davici_parse() for
- * the end element.
+ * The root section has a level of 0 and for each nested section the level is
+ * incremented by one. When parsing a list, the level is incremented by one.
+ * The level after parsing a section/list start is increased just after
+ * davici_parse() is called for such an element, while for end elements the
+ * level is decreased in davici_parse() for that element.
  *
  * @param res		response or event message
  * @return			section/list nesting level
@@ -476,7 +476,7 @@ const void* davici_get_value(struct davici_response *res, unsigned int *len);
  * Get the element value if it is a string.
  *
  * This is a convenience function to get the value of an element as string,
- * the same restirctions as to davici_get_value() apply. The function fails
+ * the same restrictions as to davici_get_value() apply. The function fails
  * if the value has any non-printable characters.
  *
  * @param res		response or event message context
@@ -491,7 +491,7 @@ int davici_get_value_str(struct davici_response *res,
  * Compare the element value to a given string.
  *
  * This is a convenience function to compare the value of an element as string
- * to a given string. The same restirctions as to davici_get_value() apply.
+ * to a given string. The same restrictions as to davici_get_value() apply.
  *
  * @param res		response or event message
  * @param str		string to compare against value
