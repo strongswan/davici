@@ -25,6 +25,10 @@
 #include <stdio.h>
 #include <stdarg.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
  * Opaque connection context.
  */
@@ -515,6 +519,10 @@ int davici_value_strcmp(struct davici_response *res, const char *str);
  */
 int davici_dump(struct davici_response *res, const char *name, const char *sep,
 				unsigned int level, unsigned int indent, FILE *out);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* _DAVICI_H_ */
 
