@@ -1,5 +1,11 @@
 # Release notes #
 
+## Version 1.1 - 2016-06-6 ##
+
+- Misc minor fixes
+- Wrap davici.h in extern C for C++ users
+
+
 ## Version 1.0 - 2015-12-15 ##
 
 - Initial public LGPLv2 licensed release
