@@ -27,7 +27,7 @@ clean-local: cov-reset
 cov-reset:
 	@rm -rf $(top_builddir)/coverage
 	@find $(top_builddir) -name "*.gcda" -delete
-	@lcov --directory $(top_builddir) --zerocounters
+	@lcov --directory $(top_builddir) --zerocounters || true
 
 cov-makereport: cov-reset check
 	@mkdir $(top_builddir)/coverage
