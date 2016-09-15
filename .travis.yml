@@ -12,3 +12,8 @@ before_script:
 
 script:
   - ./configure && make && make check
+
+matrix:
+  include:
+    - compiler: clang
+      os: osx
