@@ -32,7 +32,7 @@ static void eventcb(struct davici_conn *c, int err, const char *name,
 	struct tester *t = user;
 
 	assert(strcmp(name, "nosuchevent") == 0);
-	assert(err == -EBADSLT);
+	assert(err == -ENOENT);
 	assert(res == NULL);
 
 	tester_complete(t);

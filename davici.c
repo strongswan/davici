@@ -241,7 +241,7 @@ static int handle_event_unknown(struct davici_conn *c)
 		return -EBADMSG;
 	}
 
-	req->cb(c, -EBADSLT, name, NULL, req->user);
+	req->cb(c, -ENOENT, name, NULL, req->user);
 	destroy_request(req);
 	return 0;
 }
