@@ -1,4 +1,7 @@
 /*
+ * Copyright (C) 2016 Tobias Brunner
+ * HSR Hochschule fuer Technik Rapperswil
+ *
  * Copyright (C) 2015 CloudGuard Software AG
  *
  * This library is free software; you can redistribute it and/or
@@ -12,12 +15,59 @@
  * Lesser General Public License for more details.
  */
 
+#include "config.h"
 #include "tester.h"
 
 #include <assert.h>
 #include <unistd.h>
 #include <string.h>
 #include <stdint.h>
+#include <stdlib.h>
+#include <stdio.h>
+
+#if !defined(HAVE_FMEMOPEN) && defined(HAVE_FUNOPEN)
+
+static size_t min(size_t a, size_t b)
+{
+	return a < b ? a : b;
+}
+
+typedef struct {
+	char *buf;
+	size_t size;
+} cookie_t;
+
+static int fmemwrite(cookie_t *cookie, const char *buf, int size)
+{
+	int len;
+
+	len = min(size, cookie->size);
+	memcpy(cookie->buf, buf, len);
+	cookie->buf += len;
+	cookie->size -= len;
+	return len;
+}
+
+static int fmemclose(cookie_t *cookie)
+{
+	if (cookie->size)
+	{
+		*cookie->buf = '\0';
+	}
+	free(cookie);
+	return 0;
+}
+
+static FILE *fmemopen(void *buf, size_t size, const char *mode)
+{
+	cookie_t *cookie;
+
+	cookie = calloc(1, sizeof(*cookie));
+	cookie->buf = buf;
+	cookie->size = size;
+	return funopen(cookie, NULL, (void*)fmemwrite, NULL, (void*)fmemclose);
+}
+#endif /* !HAVE_FMEMOPEN && HAVE_FUNOPEN */
 
 static void echocb(struct tester *t, int fd)
 {
