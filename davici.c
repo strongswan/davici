@@ -25,6 +25,7 @@
 #include <arpa/inet.h>
 #include <sys/socket.h>
 #include <sys/un.h>
+#include <fcntl.h>
 #include <limits.h>
 
 /* buffer size for a name tag */
@@ -90,7 +91,7 @@ int davici_connect_unix(const char *path, davici_fdcb fdcb, void *user,
 {
 	struct sockaddr_un addr;
 	struct davici_conn *c;
-	int len, err;
+	int len, err, flags;
 
 	c = calloc(1, sizeof(*c));
 	if (!c)
@@ -113,6 +114,15 @@ int davici_connect_unix(const char *path, davici_fdcb fdcb, void *user,
 		return err;
 	}
 	if (connect(c->s, (struct sockaddr*)&addr, len) != 0)
+	{
+		err = -errno;
+		close(c->s);
+		free(c);
+		return err;
+	}
+	flags = fcntl(c->s, F_GETFL);
+	if (flags == -1 ||
+		fcntl(c->s, F_SETFL, flags | O_NONBLOCK | O_CLOEXEC) == -1)
 	{
 		err = -errno;
 		close(c->s);
@@ -392,7 +402,7 @@ int davici_read(struct davici_conn *c)
 	while (c->pkt.received < sizeof(c->pkt.len))
 	{
 		len = recv(c->s, c->pkt.len + c->pkt.received,
-				   sizeof(c->pkt.len) - c->pkt.received, MSG_DONTWAIT);
+				   sizeof(c->pkt.len) - c->pkt.received, 0);
 		if (len == -1)
 		{
 			if (errno == EWOULDBLOCK || errno == EINTR)
@@ -420,7 +430,7 @@ int davici_read(struct davici_conn *c)
 	while (c->pkt.received < size + sizeof(c->pkt.len))
 	{
 		len = recv(c->s, c->pkt.buf + c->pkt.received - sizeof(c->pkt.len),
-				   size - (c->pkt.received - sizeof(c->pkt.len)), MSG_DONTWAIT);
+				   size - (c->pkt.received - sizeof(c->pkt.len)), 0);
 		if (len == -1)
 		{
 			if (errno == EWOULDBLOCK || errno == EINTR)
@@ -462,7 +472,7 @@ int davici_write(struct davici_conn *c)
 		{
 			size = htonl(req->used);
 			len = send(c->s, (char*)&size + req->sent,
-					   sizeof(size) - req->sent, MSG_DONTWAIT);
+					   sizeof(size) - req->sent, 0);
 			if (len == -1)
 			{
 				if (errno == EWOULDBLOCK || errno == EINTR)
@@ -476,7 +486,7 @@ int davici_write(struct davici_conn *c)
 		while (req->sent < req->used + sizeof(size))
 		{
 			len = send(c->s, req->buf + req->sent - sizeof(size),
-					   req->used - (req->sent - sizeof(size)), MSG_DONTWAIT);
+					   req->used - (req->sent - sizeof(size)), 0);
 			if (len == -1)
 			{
 				if (errno == EWOULDBLOCK || errno == EINTR)
