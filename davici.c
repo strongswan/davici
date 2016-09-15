@@ -21,6 +21,7 @@
 #include <unistd.h>
 #include <ctype.h>
 #include <stdarg.h>
+#include <string.h>
 #include <arpa/inet.h>
 #include <sys/socket.h>
 #include <sys/un.h>
