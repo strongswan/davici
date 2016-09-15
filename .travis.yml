@@ -13,6 +13,9 @@ before_script:
 script:
   - ./configure && make && make check
 
+after_failure:
+  - find ./tests -name '*.log' -print -exec cat {} \;
+
 matrix:
   include:
     - compiler: clang
