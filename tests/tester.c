@@ -77,7 +77,7 @@ struct tester* tester_create(tester_srvcb srvcb)
 
 	unlink(t->path);
 	assert(bind(t->pfd[FD_LISTEN].fd, (struct sockaddr*)&addr, len) == 0);
-	assert(listen(t->pfd[FD_LISTEN].fd, 1) == 0);
+	assert(listen(t->pfd[FD_LISTEN].fd, 2) == 0);
 
 	return t;
 }
