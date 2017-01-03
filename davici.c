@@ -86,12 +86,37 @@ struct davici_conn {
 	enum davici_fdops ops;
 };
 
+static int connect_and_fcntl(int fd, const char *path)
+{
+	struct sockaddr_un addr;
+	int len, flags;
+
+	memset(&addr, 0, sizeof(addr));
+	addr.sun_family = AF_UNIX;
+	snprintf(addr.sun_path, sizeof(addr.sun_path), "%s", path);
+	len = offsetof(struct sockaddr_un, sun_path) + strlen(addr.sun_path);
+
+	if (connect(fd, (struct sockaddr*)&addr, len) != 0)
+	{
+		return -errno;
+	}
+	flags = fcntl(fd, F_GETFL);
+	if (flags == -1)
+	{
+		return -errno;
+	}
+	if (fcntl(fd, F_SETFL, flags | O_NONBLOCK | O_CLOEXEC) == -1)
+	{
+		return -errno;
+	}
+	return 0;
+}
+
 int davici_connect_unix(const char *path, davici_fdcb fdcb, void *user,
 						struct davici_conn **cp)
 {
-	struct sockaddr_un addr;
 	struct davici_conn *c;
-	int len, err, flags;
+	int err;
 
 	c = calloc(1, sizeof(*c));
 	if (!c)
@@ -101,11 +126,6 @@ int davici_connect_unix(const char *path, davici_fdcb fdcb, void *user,
 	c->fdcb = fdcb;
 	c->user = user;
 
-	memset(&addr, 0, sizeof(addr));
-	addr.sun_family = AF_UNIX;
-	snprintf(addr.sun_path, sizeof(addr.sun_path), "%s", path);
-	len = offsetof(struct sockaddr_un, sun_path) + strlen(addr.sun_path);
-
 	c->s = socket(AF_UNIX, SOCK_STREAM, 0);
 	if (c->s < 0)
 	{
@@ -113,22 +133,14 @@ int davici_connect_unix(const char *path, davici_fdcb fdcb, void *user,
 		free(c);
 		return err;
 	}
-	if (connect(c->s, (struct sockaddr*)&addr, len) != 0)
+	err = connect_and_fcntl(c->s, path);
+	if (err < 0)
 	{
-		err = -errno;
 		close(c->s);
 		free(c);
 		return err;
 	}
-	flags = fcntl(c->s, F_GETFL);
-	if (flags == -1 ||
-		fcntl(c->s, F_SETFL, flags | O_NONBLOCK | O_CLOEXEC) == -1)
-	{
-		err = -errno;
-		close(c->s);
-		free(c);
-		return err;
-	}
+
 	*cp = c;
 	return 0;
 }
