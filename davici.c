@@ -105,7 +105,10 @@ static int connect_and_fcntl(int fd, const char *path)
 	{
 		return -errno;
 	}
-	if (fcntl(fd, F_SETFL, flags | O_NONBLOCK | O_CLOEXEC) == -1)
+#ifdef O_CLOEXEC
+	flags |= O_CLOEXEC;
+#endif
+	if (fcntl(fd, F_SETFL, flags | O_NONBLOCK) == -1)
 	{
 		return -errno;
 	}
