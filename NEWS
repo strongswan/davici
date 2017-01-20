@@ -1,5 +1,12 @@
 # Release notes #
 
+## Version 1.3 - 2017-01-20 ##
+
+- Introduce recursive message parsing using callbacks
+- Add scanf() based value conversion helper functions
+- Some tweaks for C99 compatibility
+
+
 ## Version 1.2 - 2017-01-05 ##
 
 - Add Travis CI support
