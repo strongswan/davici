@@ -71,9 +71,9 @@ struct davici_response {
 
 struct davici_event {
 	struct davici_event *next;
-	char *name;
 	davici_cb cb;
 	void *user;
+	char name[0];
 };
 
 struct davici_conn {
@@ -288,7 +288,6 @@ static int remove_event(struct davici_conn *c, const char *name, davici_cb cb)
 			{
 				c->events = ev->next;
 			}
-			free(ev->name);
 			free(ev);
 			return 0;
 		}
@@ -302,20 +301,15 @@ static int add_event(struct davici_conn *c, const char *name,
 					 davici_cb cb, void *user)
 {
 	struct davici_event *ev;
-	int err;
+	int len;
 
-	ev = calloc(sizeof(*ev), 1);
+	len = strlen(name);
+	ev = calloc(sizeof(*ev) + len + 1, 1);
 	if (!ev)
 	{
 		return -errno;
 	}
-	ev->name = strdup(name);
-	if (!ev->name)
-	{
-		err = -errno;
-		free(ev);
-		return err;
-	}
+	memcpy(ev->name, name, len);
 	ev->cb = cb;
 	ev->user = user;
 	ev->next = c->events;
@@ -534,7 +528,6 @@ void davici_disconnect(struct davici_conn *c)
 	while (event)
 	{
 		next = event->next;
-		free(event->name);
 		free(event);
 		event = next;
 	}
