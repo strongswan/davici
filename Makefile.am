@@ -10,7 +10,7 @@ lib_LTLIBRARIES = libdavici.la
 #  interface added, removed, or changed: current++, revision = 0
 #  interfaces added: age++
 #  interfaces removed: age = 0
-libdavici_la_LDFLAGS = -version-info 0:2:0
+libdavici_la_LDFLAGS = -version-info 1:0:1
 
 libdavici_la_SOURCES = \
 	davici.c
