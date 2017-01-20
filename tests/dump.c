@@ -25,50 +25,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-#if !defined(HAVE_FMEMOPEN) && defined(HAVE_FUNOPEN)
-
-static size_t min(size_t a, size_t b)
-{
-	return a < b ? a : b;
-}
-
-typedef struct {
-	char *buf;
-	size_t size;
-} cookie_t;
-
-static int fmemwrite(cookie_t *cookie, const char *buf, int size)
-{
-	int len;
-
-	len = min(size, cookie->size);
-	memcpy(cookie->buf, buf, len);
-	cookie->buf += len;
-	cookie->size -= len;
-	return len;
-}
-
-static int fmemclose(cookie_t *cookie)
-{
-	if (cookie->size)
-	{
-		*cookie->buf = '\0';
-	}
-	free(cookie);
-	return 0;
-}
-
-static FILE *fmemopen(void *buf, size_t size, const char *mode)
-{
-	cookie_t *cookie;
-
-	cookie = calloc(1, sizeof(*cookie));
-	cookie->buf = buf;
-	cookie->size = size;
-	return funopen(cookie, NULL, (void*)fmemwrite, NULL, (void*)fmemclose);
-}
-#endif /* !HAVE_FMEMOPEN && HAVE_FUNOPEN */
-
 static void echocb(struct tester *t, int fd)
 {
 	char buf[2048];
@@ -80,37 +36,44 @@ static void echocb(struct tester *t, int fd)
 	tester_write_cmdres(fd, buf, len);
 }
 
+static void verify(FILE *f, const char *exp)
+{
+	char buf[512];
+
+	rewind(f);
+	assert(fread(buf, strlen(exp), 1, f) == 1);
+	assert(strncmp(buf, exp, strlen(exp)) == 0);
+	assert(fread(buf, 1, 1, f) == 0);
+	assert(feof(f));
+}
+
 static void reqcb(struct davici_conn *c, int err, const char *name,
 				  struct davici_response *res, void *user)
 {
 	struct tester *t = user;
-	char buf[512];
 	FILE *f;
 
 	assert(err >= 0);
 
-	f = fmemopen(buf, sizeof(buf), "w");
+	f = tmpfile();
 	assert(f);
 	assert(davici_dump(res, name, " ", 0, 0, f));
+	verify(f, "echoreq { section { key = value list [ item ] } }");
 	fclose(f);
 
-	assert(strcmp(buf,
-			"echoreq { section { key = value list [ item ] } }") == 0);
-
-	f = fmemopen(buf, sizeof(buf), "w");
+	f = tmpfile();
 	assert(f);
 	assert(davici_dump(res, name, "\n", 1, 2, f));
+	verify(f,
+		"  echoreq {\n"
+		"    section {\n"
+		"      key = value\n"
+		"      list [\n"
+		"        item\n"
+		"      ]\n"
+		"    }\n"
+		"  }");
 	fclose(f);
-
-	assert(strcmp(buf,
-			"  echoreq {\n"
-			"    section {\n"
-			"      key = value\n"
-			"      list [\n"
-			"        item\n"
-			"      ]\n"
-			"    }\n"
-			"  }") == 0);
 
 	tester_complete(t);
 }

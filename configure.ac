@@ -9,8 +9,6 @@ AM_SILENT_RULES([yes])
 LT_INIT
 AC_PROG_CC
 
-AC_CHECK_FUNCS(fmemopen funopen)
-
 AC_CONFIG_FILES([
 	Makefile
 	tests/Makefile
