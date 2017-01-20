@@ -3,7 +3,7 @@ AM_CPPFLAGS = \
 
 AM_CFLAGS = -Wall
 
-noinst_LTLIBRARIES = libtester.la
+check_LTLIBRARIES = libtester.la
 
 libtester_la_SOURCES = \
 	tester.c tester.h
