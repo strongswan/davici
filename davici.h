@@ -537,6 +537,55 @@ int davici_get_value_str(struct davici_response *res,
 						 char *buf, unsigned int buflen);
 
 /**
+ * Convert value using a format specifier.
+ *
+ * This functions handles the value like a string, and then uses a scanf()
+ * format string to convert the value to the passed argument pointers.
+ *
+ * @param res		response or event message context
+ * @param fmt		scanf() format string
+ * @param ...		arguments of format string
+ * @return			number of input items matched, or a negative errno
+ */
+int davici_value_scanf(struct davici_response *res, const char *fmt, ...);
+
+/**
+ * Convert value using a format specifier, va_list variant.
+ *
+ * Like davici_value_scanf(), but takes arguments in a va_list.
+ *
+ * @param res		response or event message context
+ * @param fmt		scanf() format string
+ * @param ...		arguments of format string
+ * @return			number of input items matched, or a negative errno
+ */
+int davici_value_vscanf(struct davici_response *res, const char *fmt,
+						va_list args);
+
+/**
+ * Convert value using a format specifier, error checking variant.
+ *
+ * Like davici_value_scanf(), but fails if either not the full value is
+ * consumed or not all input items have been matched.
+ *
+ * Note that davici_value_escanf() is implemented as macro, and that
+ * the arguments are evaluated more than once. fmt must be a string literal.
+ *
+ * @param res		response or event message context
+ * @param fmt		scanf() format string
+ * @param ...		arguments of format string
+ * @return			a negative errno on error
+ */
+#define davici_value_escanf(res, fmt, ...) ({\
+	unsigned int _v; \
+	int _m, _e, _c; \
+	_e = sizeof((void*[]){ __VA_ARGS__ }) / sizeof(void*); \
+	_m = davici_value_scanf(res, fmt "%n", __VA_ARGS__, &_c); \
+	davici_get_value(res, &_v); \
+	(_m == _e && _c == _v) ? 0 : -EBADMSG; \
+})
+
+/**
  * Compare the element value to a given string.
  *
  * This is a convenience function to compare the value of an element as string

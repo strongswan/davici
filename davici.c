@@ -1124,6 +1124,31 @@ const void* davici_get_value(struct davici_response *res, unsigned int *len)
 	return res->buf;
 }
 
+int davici_value_scanf(struct davici_response *res, const char *fmt, ...)
+{
+	va_list args;
+	int ret;
+
+	va_start(args, fmt);
+	ret = davici_value_vscanf(res, fmt, args);
+	va_end(args);
+	return ret;
+}
+
+int davici_value_vscanf(struct davici_response *res, const char *fmt,
+						va_list args)
+{
+	char buf[1024];
+	int err;
+
+	err = davici_get_value_str(res, buf, sizeof(buf));
+	if (err < 0)
+	{
+		return err;
+	}
+	return vsscanf(buf, fmt, args);
+}
+
 int davici_get_value_str(struct davici_response *res,
 						 char *buf, unsigned int buflen)
 {

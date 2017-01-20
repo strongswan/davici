@@ -21,6 +21,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <errno.h>
 
 static void echocb(struct tester *t, int fd)
 {
@@ -37,7 +38,7 @@ static int kv_cb(struct davici_response *res, void *user)
 {
 	int *i = user;
 	char buf[64];
-	int err;
+	int err, v;
 
 	err = davici_get_value_str(res, buf, sizeof(buf));
 	if (err < 0)
@@ -51,16 +52,14 @@ static int kv_cb(struct davici_response *res, void *user)
 			assert(strcmp(buf, "value") == 0);
 			break;
 		case 3:
-			assert(davici_name_strcmp(res, "list") == 0);
-			assert(strcmp(buf, "item1") == 0);
-			break;
 		case 4:
-			assert(davici_name_strcmp(res, "list") == 0);
-			assert(strcmp(buf, "item2") == 0);
-			break;
 		case 5:
 			assert(davici_name_strcmp(res, "list") == 0);
-			assert(strcmp(buf, "item3") == 0);
+			assert(davici_value_escanf(res, "item%d", &v) >= 0);
+			assert(davici_value_escanf(res, "item%d%d", &v, &v) == -EBADMSG);
+			assert(davici_value_escanf(res, "%4c%d", &buf, &v) >= 0);
+			assert(davici_value_escanf(res, "%4c", &buf) == -EBADMSG);
+			assert(v == (*i) - 3);
 			break;
 		case 7:
 			assert(davici_name_strcmp(res, "v") == 0);
