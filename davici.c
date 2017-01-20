@@ -1024,6 +1024,81 @@ int davici_parse(struct davici_response *res)
 	}
 }
 
+int davici_recurse(struct davici_response *res, davici_recursecb section,
+				   davici_recursecb li, davici_recursecb kv, void *user)
+{
+	int type, err;
+
+	while (1)
+	{
+		type = davici_parse(res);
+		switch (type)
+		{
+			case DAVICI_SECTION_START:
+				if (section)
+				{
+					err = section(res, user);
+				}
+				else
+				{
+					err = davici_recurse(res, NULL, NULL, NULL, NULL);
+				}
+				if (err < 0)
+				{
+					return err;
+				}
+				break;
+			case DAVICI_KEY_VALUE:
+				if (kv)
+				{
+					err = kv(res, user);
+					if (err < 0)
+					{
+						return err;
+					}
+				}
+				break;
+			case DAVICI_LIST_START:
+				while (1)
+				{
+					type = davici_parse(res);
+					switch (type)
+					{
+						case DAVICI_LIST_ITEM:
+							if (li)
+							{
+								err = li(res, user);
+								if (err < 0)
+								{
+									return err;
+								}
+							}
+							continue;
+						case DAVICI_LIST_END:
+							break;
+						default:
+							if (type < 0)
+							{
+								return type;
+							}
+							return -EBADMSG;
+					}
+					break;
+				}
+				break;
+			case DAVICI_SECTION_END:
+			case DAVICI_END:
+				return 0;
+			default:
+				if (type < 0)
+				{
+					return type;
+				}
+				return -EBADMSG;
+		}
+	}
+}
+
 unsigned int davici_get_level(struct davici_response *res)
 {
 	if (res->list)

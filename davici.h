@@ -121,6 +121,22 @@ typedef int (*davici_fdcb)(struct davici_conn *conn, int fd, int ops,
 						   void *user);
 
 /**
+ * Prototype for a recursive parsing callback.
+ *
+ * This callback is used by davici_recurse(), a recursive VICI message parser.
+ * The same kind of callback is used for section, list item and key/value
+ * elements found in a message.
+ *
+ * If this callback returns a negative errno, parsing is aborted and the
+ * same errno is returned from davici_recurse().
+ *
+ * @param res		response or event message parsing
+ * @param user		user context, as passed to davici_recurse()
+ * @return			a negative errno on error to stop parsing
+ */
+typedef int (*davici_recursecb)(struct davici_response *res, void *user);
+
+/**
  * Create a connection to a VICI Unix socket.
  *
  * Opens a Unix socket connection to a VICI service under path, using a
@@ -426,6 +442,35 @@ int davici_unregister(struct davici_conn *conn, const char *event,
  * @return			enum davici_element, or a negative errno
  */
 int davici_parse(struct davici_response *res);
+
+/**
+ * Recursive response or event message parser.
+ *
+ * Using davici_parse(), davici_recurse() parses a VICI message by invoking
+ * callbacks for the found elements. Three callbacks can be passed, but all
+ * are optional to not further handle an element or descent into a section.
+ *
+ * If a section callback is given, that callback must invoke davici_recurse()
+ * to parse the inner context, or it may return a negative errno. The return
+ * value from the recursive davici_recurse() invocation should be returned
+ * from the section callback to properly propagate inner errors.
+ *
+ * For any callback, davici_get_name() or davici_name_strcmp() can be called
+ * to get the name of the element for which the callback is called. For lists,
+ * the li callback is invoked for items only; davici_get_name() in a list item
+ * callback returns the name of the list.
+ *
+ * davici_get_value() can be used in list item and key/value callbacks to get
+ * the value of the element the callback is invoked for.
+ *
+ * @param res		response or event message
+ * @param section	section callback, NULL to skip sub-sections
+ * @param li		list item callback, NULL to ignore
+ * @param kv		key/value callback, NULL to ignore
+ * @return			a negative errno on error
+ */
+int davici_recurse(struct davici_response *res, davici_recursecb section,
+				   davici_recursecb li, davici_recursecb kv, void *ctx);
 
 /**
  * Get the section/list nesting level of the current parser position.
