@@ -180,7 +180,7 @@ static int copy_name(char *out, unsigned int outlen,
 	}
 	for (i = 0; i < inlen; i++)
 	{
-		if (!isascii(in[i]))
+		if (!isprint(in[i]))
 		{
 			return -EINVAL;
 		}
