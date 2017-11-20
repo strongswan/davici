@@ -22,7 +22,7 @@
 static const unsigned int request_count = 512;
 static unsigned int seen = 0;
 
-static void echocb(struct tester *t, int fd)
+static void echocb(struct tester *t, davici_fd fd)
 {
 	char buf[32768];
 	uint32_t len;

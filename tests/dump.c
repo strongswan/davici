@@ -25,7 +25,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-static void echocb(struct tester *t, int fd)
+static void echocb(struct tester *t, davici_fd fd)
 {
 	char buf[2048];
 	uint32_t len;

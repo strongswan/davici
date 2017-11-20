@@ -15,20 +15,24 @@
 #include "tester.h"
 
 #include <assert.h>
+#ifdef _WIN32
+#include <WinSock2.h>
+#include <io.h>
+#else
 #include <unistd.h>
+#endif
 #include <string.h>
 #include <stdint.h>
 
 static unsigned int stream_count = 8;
 static unsigned int seen = 0;
 
-static void echocb(struct tester *t, int fd)
+static void echocb(struct tester *t, davici_fd fd)
 {
 	char ev[] = {0x03,0x05,'c','o','u','n','t',0x00,0x01,0x00};
 	static int state = 0;
 	char buf[256];
-	uint32_t len;
-	int i;
+	uint32_t len, i;
 
 	switch (state++)
 	{
@@ -39,7 +43,7 @@ static void echocb(struct tester *t, int fd)
 		case 1:
 			len = tester_read_cmdreq(fd, "streamreq");
 			assert(len < sizeof(buf));
-			assert(read(fd, buf, len) == len);
+			assert(recv(fd, buf, len, 0) == len);
 			for (i = 0; i < stream_count; i++)
 			{
 				ev[9] = '0' + i;
@@ -127,9 +131,17 @@ int main(int argc, char *argv[])
 	struct davici_conn *c;
 	struct davici_request *r;
 
-	t = tester_create(echocb);
+#ifdef _WIN32
+	WSADATA wsd;
+	WSAStartup( MAKEWORD( 2, 2 ), &wsd );
+	t = tester_create( echocb );
+	assert(davici_connect_tcp(tester_getport(t),
+							  tester_davici_iocb, t, &c) >= 0);
+#else
+	t = tester_create( echocb );
 	assert(davici_connect_unix(tester_getpath(t),
 							   tester_davici_iocb, t, &c) >= 0);
+#endif
 	assert(davici_new_cmd("streamreq", &r) >= 0);
 	davici_kvf(r, "count", "%d", stream_count);
 	assert(davici_queue_streamed(c, r, reqcb, "listevent", streamcb, t) >= 0);

@@ -17,7 +17,7 @@
 #include <assert.h>
 #include <errno.h>
 
-int iocb(struct davici_conn *c, int fd, int ops, void *user)
+int iocb(struct davici_conn *c, davici_fd fd, int ops, void *user)
 {
 	assert(0);
 }

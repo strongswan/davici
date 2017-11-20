@@ -15,20 +15,25 @@
 #include "tester.h"
 
 #include <assert.h>
+#ifdef _WIN32
+#include <WinSock2.h>
+#include <io.h>
+#else
 #include <unistd.h>
+#endif
 #include <string.h>
 #include <stdint.h>
 
 static char huge[4096];
 
-static void echocb(struct tester *t, int fd)
+static void echocb(struct tester *t, davici_fd fd)
 {
 	char buf[sizeof(huge) * 2];
 	uint32_t len;
 
 	len = tester_read_cmdreq(fd, "echoreq");
 	assert(len < sizeof(buf));
-	assert(read(fd, buf, len) == len);
+	assert(recv(fd, buf, len, 0) == len);
 	tester_write_cmdres(fd, buf, len);
 }
 
@@ -38,9 +43,9 @@ static void reqcb(struct davici_conn *c, int err, const char *name,
 	struct tester *t = user;
 	char buf[64];
 	const char *h;
-	unsigned int len;
+	unsigned int len, j;
 	const void *v;
-	int ret, i, j;
+	int ret, i;
 
 	assert(err >= 0);
 	assert(davici_get_level(res) == 0);
@@ -105,7 +110,8 @@ static void reqcb(struct davici_conn *c, int err, const char *name,
 			case 7:
 				assert(ret == DAVICI_END);
 				assert(davici_get_level(res) == 0);
-				return tester_complete(t);
+				tester_complete(t);
+				return;
 			default:
 				assert(0);
 				break;
@@ -119,9 +125,17 @@ int main(int argc, char *argv[])
 	struct davici_conn *c;
 	struct davici_request *r;
 
-	t = tester_create(echocb);
+#ifdef _WIN32
+	WSADATA wsd;
+	WSAStartup(MAKEWORD(2,2), &wsd);
+	t = tester_create( echocb );
+	assert(davici_connect_tcp(tester_getport(t),
+							  tester_davici_iocb, t, &c) >= 0);
+#else
+	t = tester_create( echocb );
 	assert(davici_connect_unix(tester_getpath(t),
 							   tester_davici_iocb, t, &c) >= 0);
+#endif
 	assert(davici_new_cmd("tocancel", &r) >= 0);
 	davici_cancel(r);
 	assert(davici_new_cmd("one", &r) >= 0);
@@ -132,8 +146,13 @@ int main(int argc, char *argv[])
 	assert(davici_queue(c, r, reqcb, t) >= 0);
 	davici_disconnect(c);
 
+#ifdef _WIN32
+	assert(davici_connect_tcp(tester_getport(t),
+							  tester_davici_iocb, t, &c) >= 0);
+#else
 	assert(davici_connect_unix(tester_getpath(t),
 							   tester_davici_iocb, t, &c) >= 0);
+#endif
 	assert(davici_new_cmd("echoreq", &r) >= 0);
 	davici_section_start(r, "section");
 	davici_kvf(r, "key", "%s", "value");
