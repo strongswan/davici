@@ -25,12 +25,16 @@
 #include <limits.h>
 #ifdef _WIN32
 #include <WinSock2.h>
+#define sockerr WSAGetLastError()
+#define is_recoverable(err) (err == WSAEWOULDBLOCK || err == WSAEINTR)
 #else
 #include <unistd.h>
 #include <arpa/inet.h>
 #include <sys/socket.h>
 #include <sys/un.h>
 #define closesocket close
+#define sockerr errno
+#define is_recoverable(err) (err == EWOULDBLOCK || err == EINTR)
 #endif
 
 /* buffer size for a name tag */
@@ -104,13 +108,13 @@ static int connect_and_ioctl(SOCKET s, int port)
 
 	if (connect(s, (struct sockaddr*)&addr, sizeof(addr)) != 0)
 	{
-		return -errno;
+		return -sockerr;
 	}
 
 	u_long flags = 1;
 	if (ioctlsocket( s, FIONBIO, &flags ) == SOCKET_ERROR)
 	{
-		return WSAGetLastError() * -1;
+		return -sockerr;
 	}
 
 	return 0;
@@ -133,7 +137,7 @@ int davici_connect_tcp(int port, davici_fdcb fdcb, void *user,
 	c->s = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 	if (c->s < 0)
 	{
-		err = -errno;
+		err = -sockerr;
 		free(c);
 		return err;
 	}
@@ -147,6 +151,56 @@ int davici_connect_tcp(int port, davici_fdcb fdcb, void *user,
 
 	*cp = c;
 	return 0;
+}
+
+
+int davici_select(struct davici_conn *c, int *rready, int *wready, struct timeval *timeout)
+{
+	struct fd_set rfds, wfds;
+	int err;
+
+	FD_ZERO(&rfds);
+	FD_ZERO(&wfds);
+	FD_SET(c->s, &rfds);
+	FD_SET(c->s, &wfds);
+
+	if (rready && wready)
+	{
+		err = select((int)c->s + 1, &rfds, &wfds, NULL, timeout);
+	}
+	else if (rready && !wready)
+	{
+		err = select((int)c->s + 1, &rfds, NULL, NULL, timeout);
+	}
+	else if (!rready && wready)
+	{
+		err = select((int)c->s + 1, NULL, &wfds, NULL, timeout);
+	}
+	else
+	{
+		return -EINVAL;
+	}
+
+	if (err == 0)
+	{
+		return 1;
+	}
+	else if (err == -1)
+	{
+		return -sockerr;
+	}
+	else
+	{
+		if (rready)
+		{
+			*rready = FD_ISSET(c->s, &rfds) ? 1 : 0;
+		}
+		if (wready)
+		{
+			*wready = FD_ISSET(c->s, &wfds) ? 1 : 0;
+		}
+		return 0;
+	}
 }
 
 #else
@@ -163,19 +217,19 @@ static int connect_and_fcntl(int fd, const char *path)
 
 	if (connect(fd, (struct sockaddr*)&addr, len) != 0)
 	{
-		return -errno;
+		return -sockerr;
 	}
 	flags = fcntl(fd, F_GETFL);
 	if (flags == -1)
 	{
-		return -errno;
+		return -sockerr;
 	}
 #ifdef O_CLOEXEC
 	flags |= O_CLOEXEC;
 #endif
 	if (fcntl(fd, F_SETFL, flags | O_NONBLOCK) == -1)
 	{
-		return -errno;
+		return -sockerr;
 	}
 	return 0;
 }
@@ -197,7 +251,7 @@ int davici_connect_unix(const char *path, davici_fdcb fdcb, void *user,
 	c->s = socket(AF_UNIX, SOCK_STREAM, 0);
 	if (c->s < 0)
 	{
-		err = -errno;
+		err = -sockerr;
 		free(c);
 		return err;
 	}
@@ -481,11 +535,11 @@ int davici_read(struct davici_conn *c)
 				   sizeof(c->pkt.len) - c->pkt.received, 0);
 		if (len == -1)
 		{
-			if (errno == EWOULDBLOCK || errno == EINTR)
+			if (is_recoverable(sockerr))
 			{
 				return 0;
 			}
-			return -errno;
+			return -sockerr;
 		}
 		if (len == 0)
 		{
@@ -509,11 +563,11 @@ int davici_read(struct davici_conn *c)
 				   size - (c->pkt.received - sizeof(c->pkt.len)), 0);
 		if (len == -1)
 		{
-			if (errno == EWOULDBLOCK || errno == EINTR)
+			if (is_recoverable(sockerr))
 			{
 				return 0;
 			}
-			return -errno;
+			return -sockerr;
 		}
 		if (len == 0)
 		{
@@ -551,11 +605,11 @@ int davici_write(struct davici_conn *c)
 					   sizeof(size) - req->sent, 0);
 			if (len == -1)
 			{
-				if (errno == EWOULDBLOCK || errno == EINTR)
+				if (is_recoverable(sockerr))
 				{
 					return 0;
 				}
-				return -errno;
+				return -sockerr;
 			}
 			req->sent += len;
 		}
@@ -565,11 +619,11 @@ int davici_write(struct davici_conn *c)
 					   req->used - (req->sent - sizeof(size)), 0);
 			if (len == -1)
 			{
-				if (errno == EWOULDBLOCK || errno == EINTR)
+				if (is_recoverable(sockerr))
 				{
 					return 0;
 				}
-				return -errno;
+				return -sockerr;
 			}
 			req->sent += len;
 		}
@@ -608,6 +662,11 @@ void davici_disconnect(struct davici_conn *c)
 	}
 	closesocket(c->s);
 	free(c);
+}
+
+unsigned int davici_get_ops(struct davici_conn *c)
+{
+	return c->ops;
 }
 
 static int create_request(enum davici_packet_type type, const char *name,

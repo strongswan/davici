@@ -33,3 +33,5 @@ davici_value_scanf
 davici_value_vscanf
 davici_value_strcmp
 davici_dump
+davici_select
+davici_get_ops

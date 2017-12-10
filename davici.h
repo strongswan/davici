@@ -162,6 +162,24 @@ typedef int (*davici_recursecb)(struct davici_response *res, void *user);
 int davici_connect_tcp(int port, davici_fdcb fdcb, void *user,
 					   struct davici_conn **connp);
 
+/**
+ * Perform a select operation on the davici socket.
+ *
+ * Waits on the internal socket until the socket is ready to be read, written,
+ * or until the specified timeout occurs.
+ *
+ * If the timeout value is NULL, the function will wait indefinitely. If it is
+ * specified but tv_sec and tv_usec are both 0, it will return immediately.
+ *
+ * @param conn		opaque connection context
+ * @param rready	pointer receiving 1 if the socket is ready to be read, 0 if not
+ * @param wready	pointer receiving 1 if the socket is ready to be written, 0 if not
+ * @param timeout	timeout value
+ * @return			0 on success, 1 on timeout, or a negative errno
+ */
+int davici_select(struct davici_conn *conn, int *rready, int *wready,
+				  struct timeval *timeout);
+
 #else
 
 /**
@@ -227,6 +245,17 @@ int davici_write(struct davici_conn *conn);
  * @param conn		opaque connection context
  */
 void davici_disconnect(struct davici_conn *conn);
+
+/**
+ * Get the current pending operations of a connection.
+ *
+ * The connection ops is a bitwise OR of DAVICI_READ and/or DAVICI_WRITE. It
+ * indicates which of these operations are pending (waiting to be sent).
+ *
+ * @param conn		opaque connection context
+ * @return			pending operations
+ */
+unsigned int davici_get_ops(struct davici_conn *conn);
 
 /**
  * Allocate a new request command message.
