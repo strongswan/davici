@@ -153,56 +153,6 @@ int davici_connect_tcp(int port, davici_fdcb fdcb, void *user,
 	return 0;
 }
 
-
-int davici_select(struct davici_conn *c, int *rready, int *wready, struct timeval *timeout)
-{
-	struct fd_set rfds, wfds;
-	int err;
-
-	FD_ZERO(&rfds);
-	FD_ZERO(&wfds);
-	FD_SET(c->s, &rfds);
-	FD_SET(c->s, &wfds);
-
-	if (rready && wready)
-	{
-		err = select((int)c->s + 1, &rfds, &wfds, NULL, timeout);
-	}
-	else if (rready && !wready)
-	{
-		err = select((int)c->s + 1, &rfds, NULL, NULL, timeout);
-	}
-	else if (!rready && wready)
-	{
-		err = select((int)c->s + 1, NULL, &wfds, NULL, timeout);
-	}
-	else
-	{
-		return -EINVAL;
-	}
-
-	if (err == 0)
-	{
-		return 1;
-	}
-	else if (err == -1)
-	{
-		return -sockerr;
-	}
-	else
-	{
-		if (rready)
-		{
-			*rready = FD_ISSET(c->s, &rfds) ? 1 : 0;
-		}
-		if (wready)
-		{
-			*wready = FD_ISSET(c->s, &wfds) ? 1 : 0;
-		}
-		return 0;
-	}
-}
-
 #else
 
 static int connect_and_fcntl(int fd, const char *path)
@@ -1388,4 +1338,54 @@ int davici_dump(struct davici_response *res, const char *name, const char *sep,
 		}
 		total += len;
 	}
+}
+
+
+int davici_select(struct davici_conn *c, int *rready, int *wready, struct timeval *timeout)
+{
+    struct fd_set rfds, wfds;
+    int err;
+
+    FD_ZERO(&rfds);
+    FD_ZERO(&wfds);
+    FD_SET(c->s, &rfds);
+    FD_SET(c->s, &wfds);
+
+    if (rready && wready)
+    {
+        err = select((int)c->s + 1, &rfds, &wfds, NULL, timeout);
+    }
+    else if (rready && !wready)
+    {
+        err = select((int)c->s + 1, &rfds, NULL, NULL, timeout);
+    }
+    else if (!rready && wready)
+    {
+        err = select((int)c->s + 1, NULL, &wfds, NULL, timeout);
+    }
+    else
+    {
+        return -EINVAL;
+    }
+
+    if (err == 0)
+    {
+        return 1;
+    }
+    else if (err == -1)
+    {
+        return -sockerr;
+    }
+    else
+    {
+        if (rready)
+        {
+            *rready = FD_ISSET(c->s, &rfds) ? 1 : 0;
+        }
+        if (wready)
+        {
+            *wready = FD_ISSET(c->s, &wfds) ? 1 : 0;
+        }
+        return 0;
+    }
 }

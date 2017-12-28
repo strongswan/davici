@@ -28,6 +28,7 @@
 #if defined( _WIN32 )
 #define davici_fd size_t
 #else
+#include <sys/time.h>
 #define davici_fd int
 #endif /* _WIN32 */
 
@@ -161,24 +162,6 @@ typedef int (*davici_recursecb)(struct davici_response *res, void *user);
  */
 int davici_connect_tcp(int port, davici_fdcb fdcb, void *user,
 					   struct davici_conn **connp);
-
-/**
- * Perform a select operation on the davici socket.
- *
- * Waits on the internal socket until the socket is ready to be read, written,
- * or until the specified timeout occurs.
- *
- * If the timeout value is NULL, the function will wait indefinitely. If it is
- * specified but tv_sec and tv_usec are both 0, it will return immediately.
- *
- * @param conn		opaque connection context
- * @param rready	pointer receiving 1 if the socket is ready to be read, 0 if not
- * @param wready	pointer receiving 1 if the socket is ready to be written, 0 if not
- * @param timeout	timeout value
- * @return			0 on success, 1 on timeout, or a negative errno
- */
-int davici_select(struct davici_conn *conn, int *rready, int *wready,
-				  struct timeval *timeout);
 
 #else
 
@@ -672,6 +655,24 @@ int davici_value_strcmp(struct davici_response *res, const char *str);
  */
 int davici_dump(struct davici_response *res, const char *name, const char *sep,
 				unsigned int level, unsigned int indent, FILE *out);
+
+/**
+ * Perform a select operation on the davici socket.
+ *
+ * Waits on the internal socket until the socket is ready to be read, written,
+ * or until the specified timeout occurs.
+ *
+ * If the timeout value is NULL, the function will wait indefinitely. If it is
+ * specified but tv_sec and tv_usec are both 0, it will return immediately.
+ *
+ * @param conn        opaque connection context
+ * @param rready    pointer receiving 1 if the socket is ready to be read, 0 if not
+ * @param wready    pointer receiving 1 if the socket is ready to be written, 0 if not
+ * @param timeout    timeout value
+ * @return            0 on success, 1 on timeout, or a negative errno
+ */
+int davici_select(struct davici_conn *conn, int *rready, int *wready,
+                  struct timeval *timeout);
 
 #ifdef __cplusplus
 }
