@@ -20,6 +20,7 @@
 #include <io.h>
 #else
 #include <unistd.h>
+#include <sys/socket.h>
 #endif
 #include <string.h>
 #include <stdint.h>

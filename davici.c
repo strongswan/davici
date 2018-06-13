@@ -1343,7 +1343,7 @@ int davici_dump(struct davici_response *res, const char *name, const char *sep,
 
 int davici_select(struct davici_conn *c, int *rready, int *wready, struct timeval *timeout)
 {
-    struct fd_set rfds, wfds;
+    fd_set rfds, wfds;
     int err;
 
     FD_ZERO(&rfds);
