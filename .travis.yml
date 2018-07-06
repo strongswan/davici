@@ -11,7 +11,7 @@ before_script:
   - autoreconf -i
 
 script:
-  - ./configure && make && make check
+  - CFLAGS="-g -O2 -Wall -Werror" ./configure && make && make check
 
 after_failure:
   - find ./tests -name '*.log' -print -exec cat {} \;
