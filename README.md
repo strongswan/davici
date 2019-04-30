@@ -40,7 +40,7 @@ failure the VICI connection shall be closed using ``davici_disconnect()``.
 
 ## Use in multithreaded code ##
 
-davici is not thread save in the sense that multiple threads may operate on
+davici is not thread safe in the sense that multiple threads may operate on
 a single connection concurrently. It does not perform any locking. Individual
 threads may operate on individual connections, though, and multiple threads
 may also use a single connection if any call to davici functions is
