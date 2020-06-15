@@ -180,7 +180,7 @@ static int copy_name(char *out, unsigned int outlen,
 	}
 	for (i = 0; i < inlen; i++)
 	{
-		if (!isprint(in[i]))
+		if (!isprint((unsigned char)in[i]))
 		{
 			return -EINVAL;
 		}
@@ -1157,7 +1157,7 @@ int davici_get_value_str(struct davici_response *res,
 
 	for (i = 0; i < res->buflen; i++)
 	{
-		if (!isprint(val[i]))
+		if (!isprint((unsigned char)val[i]))
 		{
 			return -EINVAL;
 		}
