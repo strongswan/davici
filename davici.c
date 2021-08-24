@@ -406,65 +406,68 @@ static int handle_message(struct davici_conn *c)
 int davici_read(struct davici_conn *c)
 {
 	uint32_t size;
-	int len, err;
+	int len, err = 0;
 
-	while (c->pkt.received < sizeof(c->pkt.len))
+	while (!err)
 	{
-		len = recv(c->s, c->pkt.len + c->pkt.received,
-				   sizeof(c->pkt.len) - c->pkt.received, 0);
-		if (len == -1)
+		while (c->pkt.received < sizeof(c->pkt.len))
 		{
-			if (errno == EWOULDBLOCK || errno == EINTR)
+			len = recv(c->s, c->pkt.len + c->pkt.received,
+					   sizeof(c->pkt.len) - c->pkt.received, 0);
+			if (len == -1)
 			{
-				return 0;
+				if (errno == EWOULDBLOCK || errno == EINTR)
+				{
+					return 0;
+				}
+				return -errno;
 			}
-			return -errno;
+			if (len == 0)
+			{
+				return -ECONNRESET;
+			}
+			c->pkt.received += len;
 		}
-		if (len == 0)
-		{
-			return -ECONNRESET;
-		}
-		c->pkt.received += len;
-	}
-	memcpy(&size, c->pkt.len, sizeof(size));
-	size = ntohl(size);
-	if (!c->pkt.buf)
-	{
-		c->pkt.buf = malloc(size);
+		memcpy(&size, c->pkt.len, sizeof(size));
+		size = ntohl(size);
 		if (!c->pkt.buf)
 		{
-			return -errno;
-		}
-	}
-	while (c->pkt.received < size + sizeof(c->pkt.len))
-	{
-		len = recv(c->s, c->pkt.buf + c->pkt.received - sizeof(c->pkt.len),
-				   size - (c->pkt.received - sizeof(c->pkt.len)), 0);
-		if (len == -1)
-		{
-			if (errno == EWOULDBLOCK || errno == EINTR)
+			c->pkt.buf = malloc(size);
+			if (!c->pkt.buf)
 			{
-				return 0;
+				return -errno;
 			}
-			return -errno;
 		}
-		if (len == 0)
+		while (c->pkt.received < size + sizeof(c->pkt.len))
 		{
-			return -ECONNRESET;
+			len = recv(c->s, c->pkt.buf + c->pkt.received - sizeof(c->pkt.len),
+					   size - (c->pkt.received - sizeof(c->pkt.len)), 0);
+			if (len == -1)
+			{
+				if (errno == EWOULDBLOCK || errno == EINTR)
+				{
+					return 0;
+				}
+				return -errno;
+			}
+			if (len == 0)
+			{
+				return -ECONNRESET;
+			}
+			c->pkt.received += len;
 		}
-		c->pkt.received += len;
+		if (size)
+		{
+			err = handle_message(c);
+		}
+		else
+		{
+			err = 0;
+		}
+		free(c->pkt.buf);
+		c->pkt.buf = NULL;
+		c->pkt.received = 0;
 	}
-	if (size)
-	{
-		err = handle_message(c);
-	}
-	else
-	{
-		err = 0;
-	}
-	free(c->pkt.buf);
-	c->pkt.buf = NULL;
-	c->pkt.received = 0;
 	return err;
 }
 
