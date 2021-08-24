@@ -1,0 +1,33 @@
+name: CI
+
+on: [push, pull_request]
+
+jobs:
+  ci:
+    strategy:
+      matrix:
+        os: [ ubuntu-latest ]
+        compiler: [ gcc, clang ]
+        include:
+          - os: macos-latest
+            compiler: clang
+
+    runs-on: ${{ matrix.os }}
+    env:
+      CC: ${{ matrix.compiler }}
+
+    steps:
+      - if: ${{ startsWith(matrix.os, 'macos') }}
+        name: Install macOS build-deps
+        run: brew install automake
+      - uses: actions/checkout@v2
+      - run: autoreconf -i
+      - name: Configure
+        run: CFLAGS="-g -O2 -Wall -Werror" ./configure
+      - name: Build
+        run: make
+      - name: Tests
+        run: make check
+      - if: ${{ failure() }}
+        name: Collect error logs
+        run: find ./tests -name '*.log' -print -exec cat {} \;
