@@ -1,5 +1,12 @@
 # Release notes #
 
+## Version 1.4 - 2021-09-07 ##
+
+- Add support for edge triggered file descriptor dispatching
+- Migrate CI from Travis to GitHub Actions
+- Add a first trivial usage example showing poll() integration
+
+
 ## Version 1.3 - 2017-01-20 ##
 
 - Introduce recursive message parsing using callbacks
