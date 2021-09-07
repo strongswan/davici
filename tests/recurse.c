@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 CloudGuard Software AG
+ * Copyright (C) 2017 onway ag
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
