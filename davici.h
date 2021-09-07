@@ -556,7 +556,7 @@ int davici_value_scanf(struct davici_response *res, const char *fmt, ...);
  *
  * @param res		response or event message context
  * @param fmt		scanf() format string
- * @param ...		arguments of format string
+ * @param args		arguments of format string
  * @return			number of input items matched, or a negative errno
  */
 int davici_value_vscanf(struct davici_response *res, const char *fmt,
