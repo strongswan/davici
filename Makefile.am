@@ -1,4 +1,4 @@
-SUBDIRS = . tests
+SUBDIRS = . tests examples
 
 ACLOCAL_AMFLAGS = -I m4
 AM_MAKEFLAGS = -s
