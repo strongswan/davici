@@ -148,7 +148,7 @@ int davici_connect_unix(const char *path, davici_fdcb fdcb, void *user,
 	return 0;
 }
 
-static unsigned int max(unsigned int a, unsigned int b)
+static unsigned int max_integer(unsigned int a, unsigned int b)
 {
 	return a > b ? a : b;
 }
@@ -562,7 +562,7 @@ static int create_request(enum davici_packet_type type, const char *name,
 	{
 		req->used += strlen(name);
 	}
-	req->allocated = max(32, req->used);
+	req->allocated = max_integer(32, req->used);
 	req->buf = malloc(req->allocated);
 	if (!req->buf)
 	{
