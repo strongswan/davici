@@ -154,6 +154,28 @@ typedef int (*davici_recursecb)(struct davici_response *res, void *user);
 int davici_connect_unix(const char *path, davici_fdcb fdcb, void *user,
 						struct davici_conn **connp);
 
+
+/**
+ * Create a connection to a VICI TCP/IP socket.
+ *
+ * Opens a TCP/IP socket connection to a VICI service under address, using a
+ * file descriptor monitoring callback function as discussed above.
+ *
+ * Please note that this function uses connect() on a blocking socket, which
+ * in theory is a blocking call.
+ *
+ * Using TCP could pose a security issue. Messages sent to it are not encrypted
+ * and so this should only be used in a controlled environment.
+ *
+ * @param address	address (ip:port) to TCP/IP socket
+ * @param fdcb		callback to register for file descriptor watching
+ * @param user		user context to pass to fdcb
+ * @param connp		pointer receiving connection context on success
+ * @return			0 on success, or a negative errno
+ */
+int davici_connect_tcpip(const char *address, davici_fdcb fdcb, void *user,
+						struct davici_conn **cp);
+
 /**
  * Read and process pending connection data.
  *

@@ -18,9 +18,11 @@ TESTS = \
 	many.tst \
 	event.tst \
 	stream.tst \
+	tcpsock.tst \
 	recurse.tst \
 	badsock.tst \
 	cmdunknown.tst \
+	badtcpsock.tst \
 	eventunknown.tst
 
 cmd_tst_SOURCES = cmd.c
@@ -30,6 +32,8 @@ event_tst_SOURCES = event.c
 stream_tst_SOURCES = stream.c
 recurse_tst_SOURCES = recurse.c
 badsock_tst_SOURCES = badsock.c
+badtcpsock_tst_SOURCES = badtcpsock.c
+tcpsock_tst_SOURCES = tcpsock.c
 cmdunknown_tst_SOURCES = cmdunknown.c
 eventunknown_tst_SOURCES = eventunknown.c
 

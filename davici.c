@@ -86,33 +86,6 @@ struct davici_conn {
 	enum davici_fdops ops;
 };
 
-static int is_tcpip_socket(const char *path) {
-	int rtn = 0;
-
-	if(strlen(path) > 6) {
-		char prefix[7];
-		strncpy(prefix, path, 6);
-		if(strcmp(prefix, "tcp://") == 0) {
-			rtn = 1;
-		}
-	}
-
-	return rtn;
-}
-
-static void tcip_address(const char *path, char* ip_address_buffer)
-{
-	int tcpPrefixLen = 6;
-	int lenPath = strlen(path);
-	int suffixLen = lenPath - tcpPrefixLen;
-
-	for (size_t i = 0; i < suffixLen; i++)	{
-		ip_address_buffer[i] = path[i+tcpPrefixLen];
-	}
-
-	ip_address_buffer[suffixLen] = '\0';
-}
-
 static void ip_and_port(char *ip_address, char *ip, char *port)
 {
 	const char s[2] = ":";
@@ -131,23 +104,21 @@ static void ip_and_port(char *ip_address, char *ip, char *port)
 	}
 }
 
-static int connect_in_and_fcntl(int fd, const char *path)
+static int connect_in_and_fcntl(int fd, const char *address)
 {
 	struct sockaddr_in addr;
 	int flags;
 
 	memset(&addr, 0, sizeof(addr));
 	addr.sin_family = AF_INET;
-	char *ip_address = malloc(strlen(path) * sizeof(char));
-	char *ip = malloc(strlen(path) * sizeof(char));
+	char *ip = malloc(strlen(address) * sizeof(char));
+	char *ip_address = malloc(strlen(address) * sizeof(char));
+	strcpy(ip_address, address);
 	char *port = malloc(6 * sizeof(char));;
-	tcip_address(path, ip_address);
 	ip_and_port(ip_address, ip, port);
 	free(ip_address);
 	addr.sin_port = htons(atoi(port));
-	fprintf(stdout, "ip:%s port:%s\n", ip, port);
 	if(inet_pton(AF_INET, ip, &addr.sin_addr) <= 0) {
-		fprintf(stderr, "Invalid address (%s) or not supported.\n", ip);
 		return -1;
 	}
 
@@ -156,7 +127,6 @@ static int connect_in_and_fcntl(int fd, const char *path)
 
 	if(connect(fd, (struct sockaddr*)&addr, sizeof(addr)) < 0)
 	{
-		fprintf(stderr, "AF_NET connection failed.\n");
 		return -errno;
 	}
 	flags = fcntl(fd, F_GETFL);
@@ -174,7 +144,7 @@ static int connect_in_and_fcntl(int fd, const char *path)
 	return 0;
 }
 
-static int connect_and_fcntl(int fd, const char *path)
+static int connect_un_and_fcntl(int fd, const char *path)
 {
 	struct sockaddr_un addr;
 	int len, flags;
@@ -203,6 +173,41 @@ static int connect_and_fcntl(int fd, const char *path)
 	return 0;
 }
 
+int davici_connect_tcpip(const char *address, davici_fdcb fdcb, void *user,
+						struct davici_conn **cp)
+{
+	struct davici_conn *c;
+	int err;
+
+	c = calloc(1, sizeof(*c));
+	if (!c)
+	{
+		return -errno;
+	}
+	c->fdcb = fdcb;
+	c->user = user;
+	c->s = socket(AF_INET, SOCK_STREAM, 0);
+
+	if (c->s < 0)
+	{
+		err = -errno;
+		free(c);
+		return err;
+	}
+
+	err = connect_in_and_fcntl(c->s, address);
+
+	if (err < 0)
+	{
+		close(c->s);
+		free(c);
+		return err;
+	}
+
+	*cp = c;
+	return 0;
+}
+
 int davici_connect_unix(const char *path, davici_fdcb fdcb, void *user,
 						struct davici_conn **cp)
 {
@@ -217,30 +222,14 @@ int davici_connect_unix(const char *path, davici_fdcb fdcb, void *user,
 	c->fdcb = fdcb;
 	c->user = user;
 
-	if(is_tcpip_socket(path)) {
-		fprintf(stdout, "DV: Path:%s is tcpip\n", path);
-		c->s = socket(AF_INET, SOCK_STREAM, 0);
-	} else {
-		c->s = socket(AF_UNIX, SOCK_STREAM, 0);
-	}
-
+	c->s = socket(AF_UNIX, SOCK_STREAM, 0);
 	if (c->s < 0)
 	{
-		fprintf(stdout, "Cannot open socket\n");
 		err = -errno;
 		free(c);
 		return err;
 	}
-
-	if(is_tcpip_socket(path))
-	{
-		err = connect_in_and_fcntl(c->s, path);
-	}
-	else
-	{
-		err = connect_and_fcntl(c->s, path);
-	}
-
+	err = connect_un_and_fcntl(c->s, path);
 	if (err < 0)
 	{
 		close(c->s);
