@@ -165,7 +165,8 @@ int davici_connect_unix(const char *path, davici_fdcb fdcb, void *user,
  * in theory is a blocking call.
  *
  * Using TCP could pose a security issue. Messages sent to it are not encrypted
- * and so this should only be used in a controlled environment.
+ * and so this should only be used in a controlled, private network environment
+ * and not over public networks.
  *
  * @param address	address (ip:port) to TCP/IP socket
  * @param fdcb		callback to register for file descriptor watching
