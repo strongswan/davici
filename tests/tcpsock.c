@@ -24,8 +24,9 @@
 #include <pthread.h>
 #include <unistd.h>
 
-void* mock_server(void *add_port) {
-    unsigned int port = (__UINTPTR_TYPE__) add_port;
+void *mock_server(void *add_port)
+{
+    unsigned int port = (__UINTPTR_TYPE__)add_port;
     int server_fd;
     struct sockaddr_in address;
     server_fd = socket(AF_INET, SOCK_STREAM, 0);
@@ -36,24 +37,24 @@ void* mock_server(void *add_port) {
     assert(bind(server_fd, (struct sockaddr *)&address, sizeof(address)) >= 0);
     assert(listen(server_fd, 3) >= 0);
     sleep(1);
-    return (void*) (__intptr_t) close(server_fd);
+    return (void *)(__intptr_t)close(server_fd);
 }
 
 int iocb(struct davici_conn *c, int fd, int ops, void *user)
 {
-	assert(0);
+    assert(0);
 }
 
 int main(int argc, char *argv[])
 {
-	struct davici_conn *c;
+    struct davici_conn *c;
     pthread_t thread_id;
-    void *port = (void*) 55555;
+    void *port = (void *)55555;
     pthread_create(&thread_id, NULL, mock_server, port);
 
-	int ret = davici_connect_tcpip("127.0.0.1:55555", iocb, NULL, &c);
-    
+    int ret = davici_connect_tcpip("127.0.0.1:55555", iocb, NULL, &c);
+
     pthread_join(thread_id, NULL);
     assert(ret == 0);
-	return 0;
+    return 0;
 }

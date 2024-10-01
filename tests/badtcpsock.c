@@ -28,6 +28,6 @@ int main(int argc, char *argv[])
 	int ret;
 
 	ret = davici_connect_tcpip("127.0.0.1:66600", iocb, NULL, &c);
-    assert(ret != 0);
+	assert(ret != 0);
 	return 0;
 }
