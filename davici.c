@@ -31,7 +31,8 @@
 /* buffer size for a name tag */
 #define NAME_BUF_LEN (UCHAR_MAX + 1)
 
-enum davici_packet_type {
+enum davici_packet_type
+{
 	DAVICI_CMD_REQUEST = 0,
 	DAVICI_CMD_RESPONSE = 1,
 	DAVICI_CMD_UNKNOWN = 2,
@@ -42,7 +43,8 @@ enum davici_packet_type {
 	DAVICI_EVENT = 7,
 };
 
-struct davici_request {
+struct davici_request
+{
 	struct davici_request *next;
 	unsigned int allocated;
 	unsigned int used;
@@ -53,13 +55,15 @@ struct davici_request {
 	void *user;
 };
 
-struct davici_packet {
+struct davici_packet
+{
 	unsigned int received;
 	char len[sizeof(uint32_t)];
 	char *buf;
 };
 
-struct davici_response {
+struct davici_response
+{
 	struct davici_packet *pkt;
 	unsigned int pos;
 	unsigned int buflen;
@@ -69,14 +73,16 @@ struct davici_response {
 	unsigned int list;
 };
 
-struct davici_event {
+struct davici_event
+{
 	struct davici_event *next;
 	davici_cb cb;
 	void *user;
 	char name[0];
 };
 
-struct davici_conn {
+struct davici_conn
+{
 	int s;
 	struct davici_request *reqs;
 	struct davici_event *events;
@@ -86,17 +92,49 @@ struct davici_conn {
 	enum davici_fdops ops;
 };
 
-static int connect_and_fcntl(int fd, const char *path)
+static void ip_and_port(char *ip_address, char *ip, char *port)
 {
-	struct sockaddr_un addr;
-	int len, flags;
+	const char s[2] = ":";
+	char *token = strtok(ip_address, s);
+	if (token != NULL)
+	{
+		sprintf(ip, "%s", token);
+	}
+
+	while (token != NULL)
+	{
+		token = strtok(NULL, s);
+		if (token != NULL)
+		{
+			sprintf(port, "%s", token);
+		}
+	}
+}
+
+static int connect_in_and_fcntl(int fd, const char *address)
+{
+	struct sockaddr_in addr;
+	int flags;
 
 	memset(&addr, 0, sizeof(addr));
-	addr.sun_family = AF_UNIX;
-	snprintf(addr.sun_path, sizeof(addr.sun_path), "%s", path);
-	len = offsetof(struct sockaddr_un, sun_path) + strlen(addr.sun_path);
+	addr.sin_family = AF_INET;
+	char *ip = malloc(strlen(address) + 1);
+	char *ip_address = malloc(strlen(address) + 1);
+	strcpy(ip_address, address);
+	char *port = malloc(6 * sizeof(char));
+	;
+	ip_and_port(ip_address, ip, port);
+	free(ip_address);
+	addr.sin_port = htons(atoi(port));
+	if (inet_pton(AF_INET, ip, &addr.sin_addr) <= 0)
+	{
+		return -1;
+	}
 
-	if (connect(fd, (struct sockaddr*)&addr, len) != 0)
+	free(ip);
+	free(port);
+
+	if (connect(fd, (struct sockaddr *)&addr, sizeof(addr)) < 0)
 	{
 		return -errno;
 	}
@@ -112,6 +150,69 @@ static int connect_and_fcntl(int fd, const char *path)
 	{
 		return -errno;
 	}
+	return 0;
+}
+
+static int connect_un_and_fcntl(int fd, const char *path)
+{
+	struct sockaddr_un addr;
+	int len, flags;
+
+	memset(&addr, 0, sizeof(addr));
+	addr.sun_family = AF_UNIX;
+	snprintf(addr.sun_path, sizeof(addr.sun_path), "%s", path);
+	len = offsetof(struct sockaddr_un, sun_path) + strlen(addr.sun_path);
+
+	if (connect(fd, (struct sockaddr *)&addr, len) != 0)
+	{
+		return -errno;
+	}
+	flags = fcntl(fd, F_GETFL);
+	if (flags == -1)
+	{
+		return -errno;
+	}
+#ifdef O_CLOEXEC
+	flags |= O_CLOEXEC;
+#endif
+	if (fcntl(fd, F_SETFL, flags | O_NONBLOCK) == -1)
+	{
+		return -errno;
+	}
+	return 0;
+}
+
+int davici_connect_tcpip(const char *address, davici_fdcb fdcb, void *user,
+						 struct davici_conn **cp)
+{
+	struct davici_conn *c;
+	int err;
+
+	c = calloc(1, sizeof(*c));
+	if (!c)
+	{
+		return -errno;
+	}
+	c->fdcb = fdcb;
+	c->user = user;
+	c->s = socket(AF_INET, SOCK_STREAM, 0);
+
+	if (c->s < 0)
+	{
+		free(c);
+		return -errno;
+	}
+
+	err = connect_in_and_fcntl(c->s, address);
+
+	if (err < 0)
+	{
+		close(c->s);
+		free(c);
+		return err;
+	}
+
+	*cp = c;
 	return 0;
 }
 
@@ -132,11 +233,10 @@ int davici_connect_unix(const char *path, davici_fdcb fdcb, void *user,
 	c->s = socket(AF_UNIX, SOCK_STREAM, 0);
 	if (c->s < 0)
 	{
-		err = -errno;
 		free(c);
-		return err;
+		return -errno;
 	}
-	err = connect_and_fcntl(c->s, path);
+	err = connect_un_and_fcntl(c->s, path);
 	if (err < 0)
 	{
 		close(c->s);
@@ -190,7 +290,7 @@ static int copy_name(char *out, unsigned int outlen,
 	return 0;
 }
 
-static struct davici_request* pop_request(struct davici_conn *c,
+static struct davici_request *pop_request(struct davici_conn *c,
 										  enum davici_packet_type type,
 										  char *name, unsigned int namelen)
 {
@@ -388,18 +488,18 @@ static int handle_message(struct davici_conn *c)
 
 	switch (c->pkt.buf[0])
 	{
-		case DAVICI_CMD_RESPONSE:
-			return handle_cmd_response(c, &pkt);
-		case DAVICI_CMD_UNKNOWN:
-			return handle_cmd_unknown(c);
-		case DAVICI_EVENT_UNKNOWN:
-			return handle_event_unknown(c);
-		case DAVICI_EVENT_CONFIRM:
-			return handle_event_confirm(c);
-		case DAVICI_EVENT:
-			return handle_event(c, &pkt);
-		default:
-			return 0;
+	case DAVICI_CMD_RESPONSE:
+		return handle_cmd_response(c, &pkt);
+	case DAVICI_CMD_UNKNOWN:
+		return handle_cmd_unknown(c);
+	case DAVICI_EVENT_UNKNOWN:
+		return handle_event_unknown(c);
+	case DAVICI_EVENT_CONFIRM:
+		return handle_event_confirm(c);
+	case DAVICI_EVENT:
+		return handle_event(c, &pkt);
+	default:
+		return 0;
 	}
 }
 
@@ -483,7 +583,7 @@ int davici_write(struct davici_conn *c)
 		while (req->sent < sizeof(req->used))
 		{
 			size = htonl(req->used);
-			len = send(c->s, (char*)&size + req->sent,
+			len = send(c->s, (char *)&size + req->sent,
 					   sizeof(size) - req->sent, 0);
 			if (len == -1)
 			{
@@ -585,7 +685,7 @@ int davici_new_cmd(const char *cmd, struct davici_request **rp)
 	return create_request(DAVICI_CMD_REQUEST, cmd, rp);
 }
 
-static void* add_element(struct davici_request *r, enum davici_element type,
+static void *add_element(struct davici_request *r, enum davici_element type,
 						 unsigned int size)
 {
 	unsigned int newlen;
@@ -957,73 +1057,73 @@ int davici_parse(struct davici_response *res)
 	type = res->pkt->buf[res->pos++];
 	switch (type)
 	{
-		case DAVICI_SECTION_START:
-			if (res->list)
-			{
-				return -EBADMSG;
-			}
-			res->section++;
-			err = parse_name(res);
-			if (err < 0)
-			{
-				return err;
-			}
-			return type;
-		case DAVICI_LIST_START:
-			if (res->list)
-			{
-				return -EBADMSG;
-			}
-			err = parse_name(res);
-			if (err < 0)
-			{
-				return err;
-			}
-			res->list++;
-			return type;
-		case DAVICI_LIST_ITEM:
-			if (!res->list)
-			{
-				return -EBADMSG;
-			}
-			err = parse_value(res);
-			if (err < 0)
-			{
-				return err;
-			}
-			return type;
-		case DAVICI_KEY_VALUE:
-			if (res->list)
-			{
-				return -EBADMSG;
-			}
-			err = parse_name(res);
-			if (err < 0)
-			{
-				return err;
-			}
-			err = parse_value(res);
-			if (err < 0)
-			{
-				return err;
-			}
-			return type;
-		case DAVICI_SECTION_END:
-			if (!res->section || res->list)
-			{
-				return -EBADMSG;
-			}
-			res->section--;
-			return type;
-		case DAVICI_LIST_END:
-			if (!res->list)
-			{
-				return -EBADMSG;
-			}
-			res->list--;
-			return type;
-		default:
+	case DAVICI_SECTION_START:
+		if (res->list)
+		{
 			return -EBADMSG;
+		}
+		res->section++;
+		err = parse_name(res);
+		if (err < 0)
+		{
+			return err;
+		}
+		return type;
+	case DAVICI_LIST_START:
+		if (res->list)
+		{
+			return -EBADMSG;
+		}
+		err = parse_name(res);
+		if (err < 0)
+		{
+			return err;
+		}
+		res->list++;
+		return type;
+	case DAVICI_LIST_ITEM:
+		if (!res->list)
+		{
+			return -EBADMSG;
+		}
+		err = parse_value(res);
+		if (err < 0)
+		{
+			return err;
+		}
+		return type;
+	case DAVICI_KEY_VALUE:
+		if (res->list)
+		{
+			return -EBADMSG;
+		}
+		err = parse_name(res);
+		if (err < 0)
+		{
+			return err;
+		}
+		err = parse_value(res);
+		if (err < 0)
+		{
+			return err;
+		}
+		return type;
+	case DAVICI_SECTION_END:
+		if (!res->section || res->list)
+		{
+			return -EBADMSG;
+		}
+		res->section--;
+		return type;
+	case DAVICI_LIST_END:
+		if (!res->list)
+		{
+			return -EBADMSG;
+		}
+		res->list--;
+		return type;
+	default:
+		return -EBADMSG;
 	}
 }
 
@@ -1037,67 +1137,67 @@ int davici_recurse(struct davici_response *res, davici_recursecb section,
 		type = davici_parse(res);
 		switch (type)
 		{
-			case DAVICI_SECTION_START:
-				if (section)
-				{
-					err = section(res, user);
-				}
-				else
-				{
-					err = davici_recurse(res, NULL, NULL, NULL, NULL);
-				}
+		case DAVICI_SECTION_START:
+			if (section)
+			{
+				err = section(res, user);
+			}
+			else
+			{
+				err = davici_recurse(res, NULL, NULL, NULL, NULL);
+			}
+			if (err < 0)
+			{
+				return err;
+			}
+			break;
+		case DAVICI_KEY_VALUE:
+			if (kv)
+			{
+				err = kv(res, user);
 				if (err < 0)
 				{
 					return err;
 				}
-				break;
-			case DAVICI_KEY_VALUE:
-				if (kv)
+			}
+			break;
+		case DAVICI_LIST_START:
+			while (1)
+			{
+				type = davici_parse(res);
+				switch (type)
 				{
-					err = kv(res, user);
-					if (err < 0)
+				case DAVICI_LIST_ITEM:
+					if (li)
 					{
-						return err;
+						err = li(res, user);
+						if (err < 0)
+						{
+							return err;
+						}
 					}
-				}
-				break;
-			case DAVICI_LIST_START:
-				while (1)
-				{
-					type = davici_parse(res);
-					switch (type)
-					{
-						case DAVICI_LIST_ITEM:
-							if (li)
-							{
-								err = li(res, user);
-								if (err < 0)
-								{
-									return err;
-								}
-							}
-							continue;
-						case DAVICI_LIST_END:
-							break;
-						default:
-							if (type < 0)
-							{
-								return type;
-							}
-							return -EBADMSG;
-					}
+					continue;
+				case DAVICI_LIST_END:
 					break;
+				default:
+					if (type < 0)
+					{
+						return type;
+					}
+					return -EBADMSG;
 				}
 				break;
-			case DAVICI_SECTION_END:
-			case DAVICI_END:
-				return 0;
-			default:
-				if (type < 0)
-				{
-					return type;
-				}
-				return -EBADMSG;
+			}
+			break;
+		case DAVICI_SECTION_END:
+		case DAVICI_END:
+			return 0;
+		default:
+			if (type < 0)
+			{
+				return type;
+			}
+			return -EBADMSG;
 		}
 	}
 }
@@ -1111,7 +1211,7 @@ unsigned int davici_get_level(struct davici_response *res)
 	return res->section;
 }
 
-const char* davici_get_name(struct davici_response *res)
+const char *davici_get_name(struct davici_response *res)
 {
 	return res->name;
 }
@@ -1121,7 +1221,7 @@ int davici_name_strcmp(struct davici_response *res, const char *str)
 	return strcmp(res->name, str);
 }
 
-const void* davici_get_value(struct davici_response *res, unsigned int *len)
+const void *davici_get_value(struct davici_response *res, unsigned int *len)
 {
 	*len = res->buflen;
 	return res->buf;
@@ -1212,51 +1312,51 @@ int davici_dump(struct davici_response *res, const char *name, const char *sep,
 		err = davici_parse(res);
 		switch (err)
 		{
-			case DAVICI_END:
-				level--;
-				len = fprintf(out, "%*s}", level * indent, "");
-				if (len < 0)
-				{
-					return -errno;
-				}
-				return total + len;
-			case DAVICI_SECTION_START:
-				len = fprintf(out, "%*s%s {%s", level * indent, "",
-							  res->name, sep);
-				level++;
-				break;
-			case DAVICI_SECTION_END:
-				level--;
-				len = fprintf(out, "%*s}%s", level * indent, "", sep);
-				break;
-			case DAVICI_KEY_VALUE:
-				err = davici_get_value_str(res, buf, sizeof(buf));
-				if (err < 0)
-				{
-					return err;
-				}
-				len = fprintf(out, "%*s%s = %s%s", level * indent, "",
-							  res->name, buf, sep);
-				break;
-			case DAVICI_LIST_START:
-				len = fprintf(out, "%*s%s [%s", level * indent, "",
-							  res->name, sep);
-				level++;
-				break;
-			case DAVICI_LIST_ITEM:
-				err = davici_get_value_str(res, buf, sizeof(buf));
-				if (err < 0)
-				{
-					return err;
-				}
-				len = fprintf(out, "%*s%s%s", level * indent, "", buf, sep);
-				break;
-			case DAVICI_LIST_END:
-				level--;
-				len = fprintf(out, "%*s]%s", level * indent, "", sep);
-				break;
-			default:
+		case DAVICI_END:
+			level--;
+			len = fprintf(out, "%*s}", level * indent, "");
+			if (len < 0)
+			{
+				return -errno;
+			}
+			return total + len;
+		case DAVICI_SECTION_START:
+			len = fprintf(out, "%*s%s {%s", level * indent, "",
+						  res->name, sep);
+			level++;
+			break;
+		case DAVICI_SECTION_END:
+			level--;
+			len = fprintf(out, "%*s}%s", level * indent, "", sep);
+			break;
+		case DAVICI_KEY_VALUE:
+			err = davici_get_value_str(res, buf, sizeof(buf));
+			if (err < 0)
+			{
 				return err;
+			}
+			len = fprintf(out, "%*s%s = %s%s", level * indent, "",
+						  res->name, buf, sep);
+			break;
+		case DAVICI_LIST_START:
+			len = fprintf(out, "%*s%s [%s", level * indent, "",
+						  res->name, sep);
+			level++;
+			break;
+		case DAVICI_LIST_ITEM:
+			err = davici_get_value_str(res, buf, sizeof(buf));
+			if (err < 0)
+			{
+				return err;
+			}
+			len = fprintf(out, "%*s%s%s", level * indent, "", buf, sep);
+			break;
+		case DAVICI_LIST_END:
+			level--;
+			len = fprintf(out, "%*s]%s", level * indent, "", sep);
+			break;
+		default:
+			return err;
 		}
 		if (len < 0)
 		{
