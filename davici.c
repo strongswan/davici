@@ -115,6 +115,40 @@ static int connect_and_fcntl(int fd, const char *path)
 	return 0;
 }
 
+int davici_connect_socket(int s, davici_fdcb fdcb, void *user,
+						  struct davici_conn **cp)
+{
+	struct davici_conn *c;
+	int flags;
+
+	c = calloc(1, sizeof(*c));
+	if (!c)
+	{
+		return -errno;
+	}
+	c->fdcb = fdcb;
+	c->user = user;
+
+	flags = fcntl(s, F_GETFL);
+	if (flags == -1)
+	{
+		free(c);
+		return -errno;
+	}
+	if ((flags & O_NONBLOCK) == 0)
+	{
+		if (fcntl(s, F_SETFL, flags | O_NONBLOCK) == -1)
+		{
+			free(c);
+			return -errno;
+		}
+	}
+
+	c->s = s;
+	*cp = c;
+	return 0;
+}
+
 int davici_connect_unix(const char *path, davici_fdcb fdcb, void *user,
 						struct davici_conn **cp)
 {

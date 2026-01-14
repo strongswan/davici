@@ -137,6 +137,23 @@ typedef int (*davici_fdcb)(struct davici_conn *conn, int fd, int ops,
 typedef int (*davici_recursecb)(struct davici_response *res, void *user);
 
 /**
+ * Create a connection to a BSD socket already connected to VICI.
+ *
+ * Assumes control of the file descriptor of an an existing BSD socket
+ * which is already connected to VICI service using a file descriptor
+ * monitoring callback function as discussed above. The file descriptor
+ * will be closed by davici_disconnect().
+ *
+ * @param s			file descriptor of BSD socket
+ * @param fdcb		callback to register for file descriptor watching
+ * @param user		user context to pass to fdcb
+ * @param connp		pointer receiving connection context on success
+ * @return			0 on success, or a negative errno
+ */
+int davici_connect_socket(int s, davici_fdcb fdcb, void *user,
+						  struct davici_conn **connp);
+
+/**
  * Create a connection to a VICI Unix socket.
  *
  * Opens a Unix socket connection to a VICI service under path, using a
