@@ -134,13 +134,21 @@ int davici_connect_socket(int s, davici_fdcb fdcb, void *user,
 int davici_connect_unix(const char *path, davici_fdcb fdcb, void *user,
 						struct davici_conn **cp)
 {
-	struct sockaddr_un addr;
+	struct sockaddr_un addr = {
+		.sun_family = AF_UNIX,
+	};
 	int len, err, s;
 
-	memset(&addr, 0, sizeof(addr));
-	addr.sun_family = AF_UNIX;
-	snprintf(addr.sun_path, sizeof(addr.sun_path), "%s", path);
-	len = offsetof(struct sockaddr_un, sun_path) + strlen(addr.sun_path);
+	len = snprintf(addr.sun_path, sizeof(addr.sun_path), "%s", path);
+	if (len < 0)
+	{
+		return -errno;
+	}
+	if (len > sizeof(addr.sun_path) - 1)
+	{
+		return -ENAMETOOLONG;
+	}
+	len += offsetof(struct sockaddr_un, sun_path);
 
 	s = socket(AF_UNIX, SOCK_STREAM, 0);
 	if (s < 0)

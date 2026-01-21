@@ -16,6 +16,7 @@
 
 #include <assert.h>
 #include <errno.h>
+#include <sys/un.h>
 
 int iocb(struct davici_conn *c, int fd, int ops, void *user)
 {
@@ -25,9 +26,15 @@ int iocb(struct davici_conn *c, int fd, int ops, void *user)
 int main(int argc, char *argv[])
 {
 	struct davici_conn *c;
+	struct sockaddr_un addr;
+	char longpath[sizeof(addr.sun_path) + 1];
 	int ret;
 
 	ret = davici_connect_unix("/does/not/exist", iocb, NULL, &c);
 	assert(ret == -ENOENT);
+	memset(longpath, 'l', sizeof(longpath));
+	longpath[sizeof(longpath) - 1] = '\0';
+	ret = davici_connect_unix(longpath, iocb, NULL, &c);
+	assert(ret == -ENAMETOOLONG);
 	return 0;
 }
