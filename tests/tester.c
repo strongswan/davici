@@ -46,7 +46,7 @@ enum tester_type {
 
 struct tester {
 	struct pollfd pfd[FD_COUNT];
-	const char *path;
+	char path[32];
 	unsigned short port;
 	tester_srvcb srvcb;
 	int complete;
@@ -60,7 +60,8 @@ struct tester* tester_create(tester_srvcb srvcb)
 
 	t = calloc(1, sizeof(*t));
 	assert(t);
-	t->path = "/tmp/test.vici";
+	assert(snprintf(t->path, sizeof(t->path),
+					"/tmp/test-%d.vici", getpid()) > 0);
 	t->srvcb = srvcb;
 
 	memset(&addr, 0, sizeof(addr));
@@ -173,6 +174,10 @@ void tester_cleanup(struct tester *t)
 {
 	close(t->pfd[FD_LISTEN].fd);
 	close(t->pfd[FD_SERVER].fd);
+	if (t->path[0])
+	{
+		unlink(t->path);
+	}
 	free(t);
 }
 
