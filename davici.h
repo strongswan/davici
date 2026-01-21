@@ -24,6 +24,7 @@
 
 #include <stdio.h>
 #include <stdarg.h>
+#include <sys/socket.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -170,6 +171,26 @@ int davici_connect_socket(int s, davici_fdcb fdcb, void *user,
  */
 int davici_connect_unix(const char *path, davici_fdcb fdcb, void *user,
 						struct davici_conn **connp);
+
+/**
+ * Create a connection to a VICI TCP socket.
+ *
+ * Opens a TCP socket connection to a VICI service on the given address and
+ * port, using a file descriptor monitoring callback function as discussed
+ * above.
+ *
+ * This call uses async connect() by registering a write-ready notification
+ * to the watch callback. davici_write() completes the async connect with
+ * the result.
+ *
+ * @param addr		VICI server socket address and port
+ * @param fdcb		callback to register for file descriptor watching
+ * @param user		user context to pass to fdcb
+ * @param connp		pointer receiving connection context on success
+ * @return			0 on success, or a negative errno
+ */
+int davici_connect_tcp(struct sockaddr *addr, davici_fdcb fdcb, void *user,
+					   struct davici_conn **connp);
 
 /**
  * Read and process pending connection data.

@@ -84,6 +84,7 @@ struct davici_conn {
 	davici_fdcb fdcb;
 	void *user;
 	enum davici_fdops ops;
+	int connecting;
 };
 
 static int set_fdflags(int fd)
@@ -188,6 +189,52 @@ static int update_ops(struct davici_conn *c, enum davici_fdops ops)
 		c->ops = ops;
 	}
 	return -abs(ret);
+}
+
+int davici_connect_tcp(struct sockaddr *addr, davici_fdcb fdcb, void *user,
+					   struct davici_conn **cp)
+{
+	struct davici_conn *c;
+	int err, len, s;
+
+	switch (addr->sa_family)
+	{
+		case AF_INET:
+			len = sizeof(struct sockaddr_in);
+			break;
+		case AF_INET6:
+			len = sizeof(struct sockaddr_in6);
+			break;
+		default:
+			return -EAFNOSUPPORT;
+	}
+	s = socket(addr->sa_family, SOCK_STREAM, 0);
+	if (s < 0)
+	{
+		return -errno;
+	}
+	err = davici_connect_socket(s, fdcb, user, &c);
+	if (err < 0)
+	{
+		close(s);
+		return err;
+	}
+	if (connect(s, addr, len) != 0)
+	{
+		err = -errno;
+		if (err == -EINPROGRESS)
+		{
+			c->connecting = 1;
+			err = update_ops(c, DAVICI_WRITE);
+		}
+		if (err < 0)
+		{
+			davici_disconnect(c);
+			return err;
+		}
+	}
+	*cp = c;
+	return 0;
 }
 
 static int copy_name(char *out, unsigned int outlen,
@@ -497,7 +544,20 @@ int davici_write(struct davici_conn *c)
 	struct davici_request *req;
 	uint32_t size;
 	int len, err;
+	socklen_t slen = sizeof(err);
 
+	if (c->connecting)
+	{
+		if (getsockopt(c->s, SOL_SOCKET, SO_ERROR, &err, &slen) != 0)
+		{
+			return -errno;
+		}
+		if (err != 0)
+		{
+			return -err;
+		}
+		c->connecting = 0;
+	}
 	req = c->reqs;
 	while (req)
 	{

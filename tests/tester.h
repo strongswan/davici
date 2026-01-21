@@ -20,6 +20,8 @@ typedef void (*tester_srvcb)(struct tester *tester, int fd);
 
 struct tester* tester_create(tester_srvcb srvcb);
 
+struct tester* tester_create_tcp(tester_srvcb srvcb);
+
 int tester_davici_iocb(struct davici_conn *c, int fd, int ops, void *user);
 
 void tester_runio(struct tester *tester, struct davici_conn *c);
@@ -27,6 +29,8 @@ void tester_runio(struct tester *tester, struct davici_conn *c);
 void tester_complete(struct tester *tester);
 
 const char *tester_getpath(struct tester *tester);
+
+unsigned short tester_get_tcpport(struct tester *t);
 
 void tester_cleanup(struct tester *tester);
 

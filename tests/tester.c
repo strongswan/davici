@@ -49,6 +49,7 @@ enum tester_type {
 struct tester {
 	struct pollfd pfd[FD_COUNT];
 	const char *path;
+	unsigned short port;
 	tester_srvcb srvcb;
 	int complete;
 };
@@ -79,6 +80,34 @@ struct tester* tester_create(tester_srvcb srvcb)
 	assert(bind(t->pfd[FD_LISTEN].fd, (struct sockaddr*)&addr, len) == 0);
 	assert(listen(t->pfd[FD_LISTEN].fd, 2) == 0);
 
+	return t;
+}
+
+struct tester* tester_create_tcp(tester_srvcb srvcb)
+{
+	struct sockaddr_in addr = {
+		.sin_family = AF_INET,
+		.sin_addr.s_addr = htonl(INADDR_LOOPBACK),
+	};
+	struct tester *t;
+	socklen_t len;
+
+	t = calloc(1, sizeof(*t));
+	assert(t);
+	t->srvcb = srvcb;
+
+	t->pfd[FD_LISTEN].fd = socket(AF_INET, SOCK_STREAM, 0);
+	assert(t->pfd[FD_LISTEN].fd >= 0);
+	t->pfd[FD_LISTEN].events = POLLIN;
+	t->pfd[FD_SERVER].events = POLLIN;
+	t->pfd[FD_SERVER].fd = -1;
+
+	len = sizeof(addr);
+	assert(bind(t->pfd[FD_LISTEN].fd, (struct sockaddr*)&addr, len) == 0);
+	assert(listen(t->pfd[FD_LISTEN].fd, 2) == 0);
+	assert(getsockname(t->pfd[FD_LISTEN].fd,
+					   (struct sockaddr*)&addr, &len) == 0);
+	t->port = ntohs(addr.sin_port);
 	return t;
 }
 
@@ -135,6 +164,11 @@ void tester_complete(struct tester *t)
 const char *tester_getpath(struct tester *t)
 {
 	return t->path;
+}
+
+unsigned short tester_get_tcpport(struct tester *t)
+{
+	return t->port;
 }
 
 void tester_cleanup(struct tester *t)

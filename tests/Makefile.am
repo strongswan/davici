@@ -14,6 +14,7 @@ LDADD = \
 
 TESTS = \
 	cmd.tst \
+	tcp.tst \
 	dump.tst \
 	many.tst \
 	event.tst \
@@ -24,6 +25,7 @@ TESTS = \
 	eventunknown.tst
 
 cmd_tst_SOURCES = cmd.c
+tcp_tst_SOURCES = tcp.c
 dump_tst_SOURCES = dump.c
 many_tst_SOURCES = many.c
 event_tst_SOURCES = event.c
