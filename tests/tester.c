@@ -14,12 +14,10 @@
 
 #include <stdio.h>
 #include <stdint.h>
-#include <errno.h>
 #include <stddef.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <poll.h>
-#include <errno.h>
 #include <assert.h>
 #include <string.h>
 #include <arpa/inet.h>

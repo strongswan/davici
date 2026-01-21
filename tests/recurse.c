@@ -19,8 +19,6 @@
 #include <unistd.h>
 #include <string.h>
 #include <stdint.h>
-#include <stdlib.h>
-#include <stdio.h>
 #include <errno.h>
 
 static void echocb(struct tester *t, int fd)

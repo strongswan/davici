@@ -16,7 +16,6 @@
 
 #include <assert.h>
 #include <unistd.h>
-#include <string.h>
 #include <stdint.h>
 
 static const unsigned int request_count = 512;

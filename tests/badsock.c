@@ -16,6 +16,7 @@
 
 #include <assert.h>
 #include <errno.h>
+#include <string.h>
 #include <sys/un.h>
 
 int iocb(struct davici_conn *c, int fd, int ops, void *user)
