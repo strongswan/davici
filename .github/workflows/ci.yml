@@ -19,7 +19,7 @@ jobs:
     steps:
       - if: ${{ startsWith(matrix.os, 'macos') }}
         name: Install macOS build-deps
-        run: brew install automake
+        run: brew install automake autoconf libtool
       - uses: actions/checkout@v2
       - run: autoreconf -i
       - name: Configure
