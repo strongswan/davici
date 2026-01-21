@@ -105,23 +105,6 @@ static int set_fdflags(int fd)
 	return 0;
 }
 
-static int connect_and_fcntl(int fd, const char *path)
-{
-	struct sockaddr_un addr;
-	int len, flags;
-
-	memset(&addr, 0, sizeof(addr));
-	addr.sun_family = AF_UNIX;
-	snprintf(addr.sun_path, sizeof(addr.sun_path), "%s", path);
-	len = offsetof(struct sockaddr_un, sun_path) + strlen(addr.sun_path);
-
-	if (connect(fd, (struct sockaddr*)&addr, len) != 0)
-	{
-		return -errno;
-	}
-	return set_fdflags(fd);
-}
-
 int davici_connect_socket(int s, davici_fdcb fdcb, void *user,
 						  struct davici_conn **cp)
 {
@@ -151,34 +134,31 @@ int davici_connect_socket(int s, davici_fdcb fdcb, void *user,
 int davici_connect_unix(const char *path, davici_fdcb fdcb, void *user,
 						struct davici_conn **cp)
 {
-	struct davici_conn *c;
-	int err;
+	struct sockaddr_un addr;
+	int len, err, s;
 
-	c = calloc(1, sizeof(*c));
-	if (!c)
+	memset(&addr, 0, sizeof(addr));
+	addr.sun_family = AF_UNIX;
+	snprintf(addr.sun_path, sizeof(addr.sun_path), "%s", path);
+	len = offsetof(struct sockaddr_un, sun_path) + strlen(addr.sun_path);
+
+	s = socket(AF_UNIX, SOCK_STREAM, 0);
+	if (s < 0)
 	{
 		return -errno;
 	}
-	c->fdcb = fdcb;
-	c->user = user;
-
-	c->s = socket(AF_UNIX, SOCK_STREAM, 0);
-	if (c->s < 0)
+	if (connect(s, (struct sockaddr*)&addr, len) != 0)
 	{
 		err = -errno;
-		free(c);
+		close(s);
 		return err;
 	}
-	err = connect_and_fcntl(c->s, path);
+	err = davici_connect_socket(s, fdcb, user, cp);
 	if (err < 0)
 	{
-		close(c->s);
-		free(c);
-		return err;
+		close(s);
 	}
-
-	*cp = c;
-	return 0;
+	return err;
 }
 
 static unsigned int max_integer(unsigned int a, unsigned int b)
