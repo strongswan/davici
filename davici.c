@@ -86,20 +86,10 @@ struct davici_conn {
 	enum davici_fdops ops;
 };
 
-static int connect_and_fcntl(int fd, const char *path)
+static int set_fdflags(int fd)
 {
-	struct sockaddr_un addr;
-	int len, flags;
+	int flags;
 
-	memset(&addr, 0, sizeof(addr));
-	addr.sun_family = AF_UNIX;
-	snprintf(addr.sun_path, sizeof(addr.sun_path), "%s", path);
-	len = offsetof(struct sockaddr_un, sun_path) + strlen(addr.sun_path);
-
-	if (connect(fd, (struct sockaddr*)&addr, len) != 0)
-	{
-		return -errno;
-	}
 	flags = fcntl(fd, F_GETFL);
 	if (flags == -1)
 	{
@@ -115,11 +105,28 @@ static int connect_and_fcntl(int fd, const char *path)
 	return 0;
 }
 
+static int connect_and_fcntl(int fd, const char *path)
+{
+	struct sockaddr_un addr;
+	int len, flags;
+
+	memset(&addr, 0, sizeof(addr));
+	addr.sun_family = AF_UNIX;
+	snprintf(addr.sun_path, sizeof(addr.sun_path), "%s", path);
+	len = offsetof(struct sockaddr_un, sun_path) + strlen(addr.sun_path);
+
+	if (connect(fd, (struct sockaddr*)&addr, len) != 0)
+	{
+		return -errno;
+	}
+	return set_fdflags(fd);
+}
+
 int davici_connect_socket(int s, davici_fdcb fdcb, void *user,
 						  struct davici_conn **cp)
 {
 	struct davici_conn *c;
-	int flags;
+	int err;
 
 	c = calloc(1, sizeof(*c));
 	if (!c)
@@ -129,19 +136,11 @@ int davici_connect_socket(int s, davici_fdcb fdcb, void *user,
 	c->fdcb = fdcb;
 	c->user = user;
 
-	flags = fcntl(s, F_GETFL);
-	if (flags == -1)
+	err = set_fdflags(s);
+	if (err < 0)
 	{
 		free(c);
-		return -errno;
-	}
-	if ((flags & O_NONBLOCK) == 0)
-	{
-		if (fcntl(s, F_SETFL, flags | O_NONBLOCK) == -1)
-		{
-			free(c);
-			return -errno;
-		}
+		return err;
 	}
 
 	c->s = s;
