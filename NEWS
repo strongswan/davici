@@ -1,5 +1,12 @@
 # Release notes #
 
+## Version 1.5 - 2026-01-21 ##
+
+- Support creating davici connections from existing file descriptors
+- Support TCP connections using async connect()
+- Add example showing IKE_SA listing/events, TCP use and select() integration
+
+
 ## Version 1.4 - 2021-09-07 ##
 
 - Add support for edge triggered file descriptor dispatching
