@@ -23,7 +23,7 @@ jobs:
       - uses: actions/checkout@v2
       - run: autoreconf -i
       - name: Configure
-        run: CFLAGS="-g -O2 -Wall -Werror" ./configure
+        run: CFLAGS="-g -O2 -Wall -Werror -Wsign-compare" ./configure
       - name: Build
         run: make
       - name: Tests
