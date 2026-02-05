@@ -18,7 +18,7 @@ libdavici_la_SOURCES = \
 nobase_include_HEADERS = \
 	davici.h
 
-AM_CFLAGS = -Wall
+AM_CFLAGS = -Wall -Wsign-compare
 
 clean-local: cov-reset
 	@find $(top_builddir) -name "*.gcno" -delete
