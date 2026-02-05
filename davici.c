@@ -145,7 +145,7 @@ int davici_connect_unix(const char *path, davici_fdcb fdcb, void *user,
 	{
 		return -errno;
 	}
-	if (len > sizeof(addr.sun_path) - 1)
+	if (len > (int)sizeof(addr.sun_path) - 1)
 	{
 		return -ENAMETOOLONG;
 	}
@@ -240,7 +240,7 @@ int davici_connect_tcp(struct sockaddr *addr, davici_fdcb fdcb, void *user,
 static int copy_name(char *out, unsigned int outlen,
 					 const char *in, unsigned int inlen)
 {
-	int i;
+	unsigned int i;
 
 	if (inlen >= outlen)
 	{
@@ -752,7 +752,7 @@ void davici_vkvf(struct davici_request *r, const char *name,
 	va_copy(copy, args);
 	len = vsnprintf(buf, sizeof(buf), fmt, copy);
 	va_end(copy);
-	if (len >= sizeof(buf))
+	if (len >= (int)sizeof(buf))
 	{
 		m = malloc(len + 1);
 		if (m)
@@ -826,7 +826,7 @@ void davici_list_vitemf(struct davici_request *r, const char *fmt, va_list args)
 	va_copy(copy, args);
 	len = vsnprintf(buf, sizeof(buf), fmt, copy);
 	va_end(copy);
-	if (len >= sizeof(buf))
+	if (len >= (int)sizeof(buf))
 	{
 		m = malloc(len + 1);
 		if (m)
@@ -1237,7 +1237,8 @@ int davici_get_value_str(struct davici_response *res,
 						 char *buf, unsigned int buflen)
 {
 	const char *val = res->buf;
-	int i, len;
+	unsigned int i;
+	int len;
 
 	for (i = 0; i < res->buflen; i++)
 	{
@@ -1251,7 +1252,7 @@ int davici_get_value_str(struct davici_response *res,
 	{
 		return -errno;
 	}
-	if (len >= buflen)
+	if ((unsigned int)len >= buflen)
 	{
 		return -ENOBUFS;
 	}
