@@ -1,5 +1,12 @@
 # Release notes #
 
+## Version 1.6 - 2026-02-05 ##
+
+- Fix -Wsign-compare warnings for davici_value_escanf() users
+- Fix internal -Wsign-compare warnings
+- Build/test with -Wsign-compare
+
+
 ## Version 1.5 - 2026-01-21 ##
 
 - Support creating davici connections from existing file descriptors
