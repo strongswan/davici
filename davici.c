@@ -47,7 +47,7 @@ struct davici_request {
 	unsigned int allocated;
 	unsigned int used;
 	unsigned int sent;
-	char *buf;
+	unsigned char *buf;
 	int err;
 	davici_cb cb;
 	void *user;
@@ -56,7 +56,7 @@ struct davici_request {
 struct davici_packet {
 	unsigned int received;
 	char len[sizeof(uint32_t)];
-	char *buf;
+	unsigned char *buf;
 };
 
 struct davici_response {
@@ -238,7 +238,7 @@ int davici_connect_tcp(struct sockaddr *addr, davici_fdcb fdcb, void *user,
 }
 
 static int copy_name(char *out, unsigned int outlen,
-					 const char *in, unsigned int inlen)
+					 const unsigned char *in, unsigned int inlen)
 {
 	unsigned int i;
 
@@ -248,7 +248,7 @@ static int copy_name(char *out, unsigned int outlen,
 	}
 	for (i = 0; i < inlen; i++)
 	{
-		if (!isprint((unsigned char)in[i]))
+		if (!isprint(in[i]))
 		{
 			return -EINVAL;
 		}
@@ -1236,13 +1236,13 @@ int davici_value_vscanf(struct davici_response *res, const char *fmt,
 int davici_get_value_str(struct davici_response *res,
 						 char *buf, unsigned int buflen)
 {
-	const char *val = res->buf;
+	const unsigned char *val = res->buf;
 	unsigned int i;
 	int len;
 
 	for (i = 0; i < res->buflen; i++)
 	{
-		if (!isprint((unsigned char)val[i]))
+		if (!isprint(val[i]))
 		{
 			return -EINVAL;
 		}
