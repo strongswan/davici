@@ -28,7 +28,7 @@ static void echocb(struct tester *t, int fd)
 	static int state = 0;
 	char buf[256];
 	uint32_t len;
-	int i;
+	unsigned int i;
 
 	switch (state++)
 	{
@@ -60,8 +60,9 @@ static void echocb(struct tester *t, int fd)
 static void reqcb(struct davici_conn *c, int err, const char *name,
 				  struct davici_response *res, void *user)
 {
+	unsigned int i;
 	char buf[10];
-	int i, ret;
+	int ret;
 
 	assert(err >= 0);
 	for (i = 0;; i++)
@@ -73,7 +74,7 @@ static void reqcb(struct davici_conn *c, int err, const char *name,
 				assert(ret == DAVICI_KEY_VALUE);
 				assert(strcmp(davici_get_name(res), "count") == 0);
 				assert(davici_get_value_str(res, buf, sizeof(buf)) == 1);
-				assert(buf[0] - '0' == stream_count);
+				assert(buf[0] - '0' == (int)stream_count);
 				continue;
 			case 1:
 				assert(ret == DAVICI_END);
@@ -89,8 +90,9 @@ static void streamcb(struct davici_conn *c, int err, const char *name,
 					 struct davici_response *res, void *user)
 {
 	struct tester *t = user;
+	unsigned int i;
 	char buf[10];
-	int i, ret;
+	int ret;
 
 	assert(err >= 0);
 	if (res)
@@ -104,7 +106,7 @@ static void streamcb(struct davici_conn *c, int err, const char *name,
 					assert(ret == DAVICI_KEY_VALUE);
 					assert(strcmp(davici_get_name(res), "count") == 0);
 					assert(davici_get_value_str(res, buf, sizeof(buf)) == 1);
-					assert(buf[0] - '0' == seen++);
+					assert(buf[0] - '0' == (int)seen++);
 					continue;
 				case 1:
 					assert(ret == DAVICI_END);

@@ -1,7 +1,7 @@
 AM_CPPFLAGS = \
 	-I$(top_srcdir)
 
-AM_CFLAGS = -Wall
+AM_CFLAGS = -Wall -Wsign-compare
 
 check_LTLIBRARIES = libtester.la
 

@@ -61,7 +61,7 @@ int main(int argc, char *argv[])
 	struct tester *t;
 	struct davici_conn *c;
 	struct davici_request *r;
-	int i, j, k;
+	unsigned int i, j, k;
 
 	t = tester_create(echocb);
 	assert(davici_connect_unix(tester_getpath(t),

@@ -38,9 +38,9 @@ static void reqcb(struct davici_conn *c, int err, const char *name,
 	struct tester *t = user;
 	char buf[64];
 	const char *h;
-	unsigned int len;
+	unsigned int len, i, j;
 	const void *v;
-	int ret, i, j;
+	int ret;
 
 	assert(err >= 0);
 	assert(davici_get_level(res) == 0);
