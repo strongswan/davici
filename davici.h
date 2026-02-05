@@ -615,8 +615,8 @@ int davici_value_vscanf(struct davici_response *res, const char *fmt,
  * @return			a negative errno on error
  */
 #define davici_value_escanf(res, fmt, ...) ({\
-	unsigned int _v; \
-	int _m, _e, _c; \
+	unsigned int _c, _v; \
+	int _m, _e; \
 	_e = sizeof((void*[]){ __VA_ARGS__ }) / sizeof(void*); \
 	_m = davici_value_scanf(res, fmt "%n", __VA_ARGS__, &_c); \
 	davici_get_value(res, &_v); \
