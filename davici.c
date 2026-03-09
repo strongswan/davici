@@ -23,6 +23,7 @@
 #include <stdarg.h>
 #include <string.h>
 #include <arpa/inet.h>
+#include <netinet/in.h>
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <fcntl.h>
