@@ -1,5 +1,12 @@
 # Release notes #
 
+## Version 1.7 - 2026-11-06 ##
+
+- Fix a memory leak of partially received packets on disconnect
+- Add missing <netinet/in.h> include for FreeBSD
+- Build/test the Linux clang CI job with AddressSanitizer
+
+
 ## Version 1.6 - 2026-02-05 ##
 
 - Fix -Wsign-compare warnings for davici_value_escanf() users
