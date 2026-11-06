@@ -21,6 +21,7 @@ TESTS = \
 	stream.tst \
 	recurse.tst \
 	badsock.tst \
+	partial.tst \
 	cmdunknown.tst \
 	eventunknown.tst
 
@@ -32,6 +33,7 @@ event_tst_SOURCES = event.c
 stream_tst_SOURCES = stream.c
 recurse_tst_SOURCES = recurse.c
 badsock_tst_SOURCES = badsock.c
+partial_tst_SOURCES = partial.c
 cmdunknown_tst_SOURCES = cmdunknown.c
 eventunknown_tst_SOURCES = eventunknown.c
 

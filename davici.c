@@ -624,6 +624,7 @@ void davici_disconnect(struct davici_conn *c)
 		free(req);
 		req = next;
 	}
+	free(c->pkt.buf);
 	close(c->s);
 	free(c);
 }
