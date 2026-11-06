@@ -9,6 +9,8 @@ jobs:
         os: [ ubuntu-latest ]
         compiler: [ gcc, clang ]
         include:
+          - compiler: clang
+            sanitize: -fsanitize=address
           - os: macos-latest
             compiler: clang
 
@@ -23,7 +25,7 @@ jobs:
       - uses: actions/checkout@v2
       - run: autoreconf -i
       - name: Configure
-        run: CFLAGS="-g -O2 -Wall -Werror -Wsign-compare" ./configure
+        run: CFLAGS="-g -O2 -Wall -Werror -Wsign-compare ${{ matrix.sanitize }}" ./configure
       - name: Build
         run: make
       - name: Tests
